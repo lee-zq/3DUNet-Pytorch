@@ -13,7 +13,7 @@ parser.add_argument('--seed', type=int, default=1,
 
 # data in/out and dataset
 parser.add_argument('--dataset_path',default = r'E:\Files\pycharm\MIS\3DUnet\fixed',
-                    help='trainset root path')
+                    help='fixed trainset root path')
 parser.add_argument('--save',default='test_model',
                     help='save path of trained model')
 parser.add_argument('--resize_scale', type=float, default=0.5,

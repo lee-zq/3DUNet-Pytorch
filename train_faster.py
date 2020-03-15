@@ -1,4 +1,4 @@
-from dataset import dataset_lits
+from dataset import dataset_lits2
 from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
@@ -89,8 +89,8 @@ if __name__ == '__main__':
     args = config.args
     device = torch.device('cpu' if args.cpu else 'cuda')
     # data info
-    train_set = dataset_lits.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='train')
-    val_set = dataset_lits.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='val')
+    train_set = dataset_lits2.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='train')
+    val_set = dataset_lits2.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='val')
     train_loader = DataLoader(dataset=train_set, shuffle=True)
     val_loader = DataLoader(dataset=val_set, shuffle=True)
     # model info

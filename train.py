@@ -16,8 +16,6 @@ def val(model, val_loader, epoch, logger):
     val_dice2 = 0
     with torch.no_grad():
         for data, target in val_loader:
-            #data = torch.squeeze(data, dim=0)
-            #target = torch.squeeze(target, dim=0)
             data, target = data.float(), target.float()
             data, target = data.to(device), target.to(device)
             output = model(data)
@@ -52,8 +50,6 @@ def train(model, train_loader, optimizer, epoch, logger):
     train_dice1 = 0
     train_dice2 = 0
     for batch_idx, (data, target) in enumerate(train_loader):
-        #data = torch.squeeze(data, dim=0)
-        #target = torch.squeeze(target, dim=0)
         data, target = data.float(), target.float()
         data, target = data.to(device), target.to(device)
         output = model(data)
@@ -92,18 +88,18 @@ if __name__ == '__main__':
     # data info
     train_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='train')
     val_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='val')
-    train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=4, shuffle=True)
-    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=4, shuffle=True)
+    train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=1, shuffle=True)
+    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=1, shuffle=True)
     # model info
     model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     init_util.print_network(model)
-    # model = nn.DataParallel(model, device_ids=[0])  # multi-GPU
+    # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
 
     logger = logger.Logger('./output/{}'.format(args.save))
     for epoch in range(1, args.epochs + 1):
         common.adjust_learning_rate(optimizer, epoch, args)
         train(model, train_loader, optimizer, epoch, logger)
         val(model, val_loader, epoch, logger)
-        torch.save(model, './output/{}/state.pkl'.format(args.save)) # 保存模型和参数
-        # torch.save(model.state_dict(), PATH) 只保存参数
+        torch.save(model, './output/{}/state.pkl'.format(args.save))  # Save model with parameters
+        # torch.save(model.state_dict(), './output/{}/param.pkl'.format(args.save))  # Only save parameters
