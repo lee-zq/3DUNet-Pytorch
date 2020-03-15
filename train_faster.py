@@ -97,7 +97,7 @@ if __name__ == '__main__':
     model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     init_util.print_network(model)
-    # model = nn.DataParallel(model, device_ids=[0])  # multi-GPU
+    # model = nn.DataParallel(model, device_ids=[0])   # multi-GPU
 
     logger = logger.Logger('./output/{}'.format(args.save))
     for epoch in range(1, args.epochs + 1):
