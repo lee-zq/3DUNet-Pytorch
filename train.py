@@ -1,4 +1,4 @@
-from dataset.dataset2_lits import Lits_DataSet
+from dataset.dataset_lits import Lits_DataSet
 from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
