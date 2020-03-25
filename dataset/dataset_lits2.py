@@ -60,12 +60,10 @@ class Lits_DataSet(Dataset):
                                  resize_scale=resize_scale)
         return data_np, label_np
 
-
-
+# 测试代码
 def main():
     fixd_path  = r'E:\Files\pycharm\MIS\3DUnet\fixed'
-    txt_path = r'E:\Files\pycharm\MIS\3DUnet\fixed\train_name_list.txt'
-    dataset = Lits_DataSet([32, 64, 64], 1,0.5,fixd_path,txt_path)  #batch size
+    dataset = Lits_DataSet([16, 64, 64], 2,0.5,fixd_path,mode='train')  #batch size
     data_loader=DataLoader(dataset=dataset,shuffle=True,num_workers=2)
     for data, mask in data_loader:
         data=torch.squeeze(data,dim=0)

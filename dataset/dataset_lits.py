@@ -55,15 +55,12 @@ class Lits_DataSet(Dataset):
         return data_np, label_np
 
 
-
+# 测试代码
 def main():
     fixd_path  = r'E:\Files\pycharm\MIS\3DUnet\fixed'
-    txt_path = r'E:\Files\pycharm\MIS\3DUnet\fixed\train_name_list.txt'
-    dataset = Lits_DataSet([32, 64, 64], 1,0.5,fixd_path,txt_path)  #batch size
-    data_loader=DataLoader(dataset=dataset,shuffle=True,num_workers=2)
-    for data, mask in data_loader:
-        data=torch.squeeze(data,dim=0)
-        mask=torch.squeeze(mask,dim=0)
-        print(data.shape, mask.shape)
+    dataset = Lits_DataSet([16, 64, 64],0.5,fixd_path,mode='train')  #batch size
+    data_loader=DataLoader(dataset=dataset,batch_size=2,num_workers=1, shuffle=True)
+    for batch_idx, (data, target) in enumerate(data_loader):
+        print(data.shape, target.shape)
 if __name__ == '__main__':
     main()
