@@ -50,6 +50,9 @@ in the browser through `tensorboard --logdir ./output/model_name`.
 In addition, during the training process you will 
 find that loading train data is time-consuming, 
 you can use `train_faster.py` to train model. `train_faster.py` calls `./dataset/dataset2_lits.py`, which will crop multiple training samples from an input sample to form a batch for quickly training.    
+### 3) Testing  
+run `test.py`  (Please pay attention to path of trained model)
+
 You can also read my Chinese
  introduction about this [3DUNet project here](https://zhuanlan.zhihu.com/p/113318562).    
 If you have any suggestions or questions, 
