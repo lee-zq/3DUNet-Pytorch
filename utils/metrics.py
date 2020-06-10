@@ -23,7 +23,6 @@ def cross_entropy_3D(input, target, weight=None, size_average=True):
         loss /= float(target.numel())
     return loss
 
-
 class SoftDiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(SoftDiceLoss, self).__init__()
