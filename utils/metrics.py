@@ -62,7 +62,7 @@ class DiceMeanLoss(nn.Module):
         super(DiceMeanLoss, self).__init__()
 
     def forward(self, logits, targets):
-        class_num = logits.size(1)
+        class_num = logits.size()[1]
 
         dice_sum = 0
         for i in range(class_num):

@@ -3,5 +3,6 @@
 /__pycache__/
 */__pycache__/
 /samples/
+/Lab/
 /output/*/
-/fixed/
+/fixed_data/

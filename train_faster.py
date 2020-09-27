@@ -1,4 +1,4 @@
-from dataset import dataset_lits2
+from dataset import dataset_lits_faster
 from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
@@ -6,7 +6,7 @@ import torch.optim as optim
 import config
 from models.Unet import UNet, RecombinationBlock
 from utils import logger, init_util, metrics,common
-
+from tqdm import tqdm
 
 def val(model, val_loader, epoch, logger):
     model.eval()
@@ -15,7 +15,7 @@ def val(model, val_loader, epoch, logger):
     val_dice1 = 0
     val_dice2 = 0
     with torch.no_grad():
-        for data, target in val_loader:
+        for idx,(data, target) in tqdm(enumerate(val_loader),total=len(val_loader)):
             data = torch.squeeze(data, dim=0)
             target = torch.squeeze(target, dim=0)
             data, target = data.float(), target.float()
@@ -41,16 +41,17 @@ def val(model, val_loader, epoch, logger):
     logger.scalar_summary('val_dice0', val_dice0, epoch)
     logger.scalar_summary('val_dice1', val_dice1, epoch)
     logger.scalar_summary('val_dice2', val_dice2, epoch)
-    print('\nVal set: Average loss: {:.6f}, dice0: {:.6f}\tdice1: {:.6f}\tdice2: {:.6f}\t\n'.format(
+    print('Val performance: Average loss: {:.4f}\tdice0: {:.4f}\tdice1: {:.4f}\tdice2: {:.4f}\t\n'.format(
         val_loss, val_dice0, val_dice1, val_dice2))
 
 def train(model, train_loader, optimizer, epoch, logger):
+    print("=======Epoch:{}=======".format(epoch))
     model.train()
     train_loss = 0
     train_dice0 = 0
     train_dice1 = 0
     train_dice2 = 0
-    for batch_idx, (data, target) in enumerate(train_loader):
+    for idx, (data, target) in tqdm(enumerate(train_loader), total=len(train_loader)):
         data = torch.squeeze(data, dim=0)
         target = torch.squeeze(target, dim=0)
         data, target = data.float(), target.float()
@@ -68,16 +69,17 @@ def train(model, train_loader, optimizer, epoch, logger):
         loss.backward()
         optimizer.step()
 
-        train_loss = loss
-        train_dice0 = metrics.dice(output, target, 0)
-        train_dice1 = metrics.dice(output, target, 1)
-        train_dice2 = metrics.dice(output, target, 2)
-        print(
-            'Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tdice0: {:.6f}\tdice1: {:.6f}\tdice2: {:.6f}\tT: {:.6f}\tP: {:.6f}\tTP: {:.6f}'.format(
-                epoch, batch_idx, len(train_loader),
-                100. * batch_idx / len(train_loader), loss.item(),
-                train_dice0, train_dice1, train_dice2,
-                metrics.T(output, target), metrics.P(output, target), metrics.TP(output, target)))
+        train_loss += loss
+        train_dice0 += metrics.dice(output, target, 0)
+        train_dice1 += metrics.dice(output, target, 1)
+        train_dice2 += metrics.dice(output, target, 2)
+    train_loss /= len(train_loader)
+    train_dice0 /= len(train_loader)
+    train_dice1 /= len(train_loader)
+    train_dice2 /= len(train_loader)
+
+    print('Train Epoch: {} \tLoss: {:.4f}\tdice0: {:.4f}\tdice1: {:.4f}\tdice2: {:.4f}'.format(
+        epoch, train_loss, train_dice0, train_dice1, train_dice2))
 
     logger.scalar_summary('train_loss', float(train_loss), epoch)
     logger.scalar_summary('train_dice0', float(train_dice0), epoch)
@@ -89,8 +91,8 @@ if __name__ == '__main__':
     args = config.args
     device = torch.device('cpu' if args.cpu else 'cuda')
     # data info
-    train_set = dataset_lits2.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='train')
-    val_set = dataset_lits2.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='val')
+    train_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='train')
+    val_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='val')
     train_loader = DataLoader(dataset=train_set, shuffle=True)
     val_loader = DataLoader(dataset=val_set, shuffle=True)
     # model info

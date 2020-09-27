@@ -4,10 +4,9 @@ import SimpleITK as sitk
 import random
 from scipy import ndimage
 
-
 class LITS_fix:
-    def __init__(self, row_dataset_path,fixed_dataset_path):
-        self.row_root_path = row_dataset_path
+    def __init__(self, raw_dataset_path,fixed_dataset_path):
+        self.raw_root_path = raw_dataset_path
         self.fixed_path = fixed_dataset_path
 
         if not os.path.exists(self.fixed_path):    # 创建保存目录
@@ -20,25 +19,21 @@ class LITS_fix:
     def fix_data(self):
         upper = 200
         lower = -200
-        expand_slice = 20  # 轴向外扩张的slice数量
+        expand_slice = 20  # 轴向外侧扩张的slice数量
         size = 48  # 取样的slice数量
 
-
-        print('the row dataset total numbers of samples is :',len(os.listdir(self.row_root_path + 'data')) )
-        for ct_file in os.listdir(self.row_root_path + 'data/'):
+        print('the raw dataset total numbers of samples is :',len(os.listdir(self.raw_root_path + 'data')) )
+        for ct_file in os.listdir(self.raw_root_path + 'data/'):
             print(ct_file)
             # 将CT和金标准入读内存
-            ct = sitk.ReadImage(os.path.join(self.row_root_path + 'data/', ct_file), sitk.sitkInt16)
+            ct = sitk.ReadImage(os.path.join(self.raw_root_path + 'data/', ct_file), sitk.sitkInt16)
             ct_array = sitk.GetArrayFromImage(ct)
 
-            seg = sitk.ReadImage(os.path.join(self.row_root_path + 'label/', ct_file.replace('volume', 'segmentation')),
+            seg = sitk.ReadImage(os.path.join(self.raw_root_path + 'label/', ct_file.replace('volume', 'segmentation')),
                                  sitk.sitkInt8)
             seg_array = sitk.GetArrayFromImage(seg)
 
             print(ct_array.shape, seg_array.shape)
-
-            # 将金标准中肝脏和肝肿瘤的标签融合为一个（可调整以适应具体任务）
-            # seg_array[seg_array > 0] = 1
 
             # 将灰度值在阈值之外的截断掉
             ct_array[ct_array > upper] = upper
@@ -83,16 +78,14 @@ class LITS_fix:
         random.shuffle(data_name_list)
 
         train_rate = 0.8
-        val_rate = 0.1
-        test_rate = 0.1
-        assert val_rate+test_rate+train_rate == 1.0
+        val_rate = 0.2
+
+        assert val_rate+train_rate == 1.0
         train_name_list = data_name_list[0:int(data_num*train_rate)]
         val_name_list = data_name_list[int(data_num*train_rate):int(data_num*(train_rate + val_rate))]
-        test_name_list = data_name_list[int(data_num*(train_rate + val_rate)):len(data_name_list)]
 
         self.write_name_list(train_name_list, "train_name_list.txt")
         self.write_name_list(val_name_list, "val_name_list.txt")
-        self.write_name_list(test_name_list, "test_name_list.txt")
 
     def write_name_list(self, name_list, file_name):
         f = open(self.fixed_path + file_name, 'w')
@@ -101,10 +94,10 @@ class LITS_fix:
         f.close()
 
 def main():
-    row_dataset_path = r'F:\BaiduNetdiskDownload\LiTS_batch1/'
-    fixed_dataset_path = r'E:\Files\pycharm\MIS\3DUnet\fixed/'
+    raw_dataset_path = 'F:/datasets/LiTS/train/'
+    fixed_dataset_path = '../fixed_data/'
     
-    LITS_fix(row_dataset_path,fixed_dataset_path)
+    LITS_fix(raw_dataset_path,fixed_dataset_path)
 
 if __name__ == '__main__':
     main()
