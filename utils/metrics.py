@@ -95,21 +95,17 @@ class WeightDiceLoss(nn.Module):
 
         return 1 - 2. * inter / union
 
-
 def dice(logits, targets, class_index):
     inter = torch.sum(logits[:, class_index, :, :, :] * targets[:, class_index, :, :, :])
     union = torch.sum(logits[:, class_index, :, :, :]) + torch.sum(targets[:, class_index, :, :, :])
     dice = (2. * inter + 1) / (union + 1)
     return dice
 
-
 def T(logits, targets):
     return torch.sum(targets[:, 2, :, :, :])
 
-
 def P(logits, targets):
     return torch.sum(logits[:, 2, :, :, :])
-
 
 def TP(logits, targets):
     return torch.sum(targets[:, 2, :, :, :] * logits[:, 2, :, :, :])

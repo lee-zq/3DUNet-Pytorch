@@ -10,8 +10,8 @@ import SimpleITK as sitk
 from utils.common import to_one_hot_3d
 
 class Mini_DataSet(Dataset):
-    def __init__(self, data_path, label_path, cut):
-        self.resize_scale = 1
+    def __init__(self, data_path, label_path, cut, resize_scale=1):
+        self.resize_scale = resize_scale
         self.label_path = label_path
         self.data_path = data_path
         self.n_labels = 3
@@ -146,7 +146,7 @@ class Recompone_tool():
         return img
 
 
-def test_Datasets(dataset_path, cut_param):
+def test_Datasets(dataset_path, cut_param, resize_scale=1):
     data_list = glob(os.path.join(dataset_path, 'data/*'))
     label_list = glob(os.path.join(dataset_path, 'label/*'))
     data_list.sort()
@@ -154,7 +154,7 @@ def test_Datasets(dataset_path, cut_param):
     print("The numbers of testset is ", len(data_list))
     for datapath, labelpath in zip(data_list, label_list):
         print("Start evaluate ", datapath)
-        yield Mini_DataSet(datapath, labelpath, cut_param), datapath.split('-')[-1]
+        yield Mini_DataSet(datapath, labelpath, cut_param,resize_scale=resize_scale), datapath.split('-')[-1]
 
 # 测试代码
 import matplotlib.pyplot as plt

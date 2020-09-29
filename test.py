@@ -12,6 +12,7 @@ from dataset.test_dataset import test_Datasets,to_one_hot_3d,Recompone_tool
 import SimpleITK as sitk
 import os
 import numpy as np
+from models.Unet import UNet, RecombinationBlock
 from utils.common import load_file_name_list
 
 def test(model, dataset, save_path, filename):
@@ -47,19 +48,20 @@ if __name__ == '__main__':
     args = config.args
     device = torch.device('cpu' if args.cpu else 'cuda')
     # model info
-    # model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
-    # model.load_state_dict(torch.load('./output/{}/state.pkl'.format(args.save)))
-    model = torch.load('./output/{}/model.pth'.format(args.save))
+    model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
+    ckpt = torch.load('./output/{}/best_model.pth'.format(args.save))
+    model.load_state_dict(ckpt['net'])
 
     # data info
-    test_data_path = './data/testdata/'
-    result_save_path = './data/result/'
+    test_data_path = r'F:\datasets\LiTS\test'
+    result_save_path = r'./output/{}/result'.format(args.save)
+    if not os.path.exists(result_save_path): os.mkdir(result_save_path)
     cut_param = {'patch_s': 32,
                  'patch_h': 128,
                  'patch_w': 128,
                  'stride_s': 24,
                  'stride_h': 96,
                  'stride_w': 96}
-    datasets = test_Datasets(test_data_path,cut_param)
+    datasets = test_Datasets(test_data_path,cut_param,resize_scale=args.resize_scale)
     for dataset,file_idx in datasets:
         test(model, dataset,result_save_path,'result-'+file_idx)

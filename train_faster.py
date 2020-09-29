@@ -1,14 +1,15 @@
 from dataset import dataset_lits_faster
 from torch.utils.data import DataLoader
-import torch
+import torch,os
 import torch.optim as optim
-
 import config
 from models.Unet import UNet, RecombinationBlock
 from utils import logger, init_util, metrics,common
 from tqdm import tqdm
+from collections import OrderedDict
+import numpy as np
 
-def val(model, val_loader, epoch, logger):
+def val(model, val_loader):
     model.eval()
     val_loss = 0
     val_dice0 = 0
@@ -37,14 +38,10 @@ def val(model, val_loader, epoch, logger):
     val_dice1 /= len(val_loader)
     val_dice2 /= len(val_loader)
 
-    logger.scalar_summary('val_loss', val_loss, epoch)
-    logger.scalar_summary('val_dice0', val_dice0, epoch)
-    logger.scalar_summary('val_dice1', val_dice1, epoch)
-    logger.scalar_summary('val_dice2', val_dice2, epoch)
-    print('Val performance: Average loss: {:.4f}\tdice0: {:.4f}\tdice1: {:.4f}\tdice2: {:.4f}\t\n'.format(
-        val_loss, val_dice0, val_dice1, val_dice2))
+    return OrderedDict({'Val Loss': val_loss, 'Val dice0': val_dice0,
+                        'Val dice1': val_dice1,'Val dice2': val_dice2})
 
-def train(model, train_loader, optimizer, epoch, logger):
+def train(model, train_loader):
     print("=======Epoch:{}=======".format(epoch))
     model.train()
     train_loss = 0
@@ -69,22 +66,17 @@ def train(model, train_loader, optimizer, epoch, logger):
         loss.backward()
         optimizer.step()
 
-        train_loss += loss
-        train_dice0 += metrics.dice(output, target, 0)
-        train_dice1 += metrics.dice(output, target, 1)
-        train_dice2 += metrics.dice(output, target, 2)
+        train_loss += float(loss)
+        train_dice0 += float(metrics.dice(output, target, 0))
+        train_dice1 += float(metrics.dice(output, target, 1))
+        train_dice2 += float(metrics.dice(output, target, 2))
     train_loss /= len(train_loader)
     train_dice0 /= len(train_loader)
     train_dice1 /= len(train_loader)
     train_dice2 /= len(train_loader)
 
-    print('Train Epoch: {} \tLoss: {:.4f}\tdice0: {:.4f}\tdice1: {:.4f}\tdice2: {:.4f}'.format(
-        epoch, train_loss, train_dice0, train_dice1, train_dice2))
-
-    logger.scalar_summary('train_loss', float(train_loss), epoch)
-    logger.scalar_summary('train_dice0', float(train_dice0), epoch)
-    logger.scalar_summary('train_dice1', float(train_dice1), epoch)
-    logger.scalar_summary('train_dice2', float(train_dice2), epoch)
+    return OrderedDict({'Train Loss': train_loss, 'Train dice0': train_dice0,
+                        'Train dice1': train_dice1, 'Train dice2': train_dice2})
 
 
 if __name__ == '__main__':
@@ -97,14 +89,34 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=val_set, shuffle=True)
     # model info
     model = UNet(1, [32, 48, 64, 96, 128], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0])   # multi-GPU
 
-    logger = logger.Logger('./output/{}'.format(args.save))
+    log = logger.Logger('./output/{}'.format(args.save))
+
+    best = [0,np.inf] # 初始化最优模型的epoch和performance
+    trigger = 0  # early stop 计数器
     for epoch in range(1, args.epochs + 1):
         common.adjust_learning_rate(optimizer, epoch, args)
-        train(model, train_loader, optimizer, epoch, logger)
-        val(model, val_loader, epoch, logger)
-        torch.save(model, './output/{}/state.pkl'.format(args.save)) # 保存模型和参数
-        # torch.save(model.state_dict(), PATH) 只保存参数
+        train_log = train(model, train_loader)
+        val_log = val(model, val_loader)
+        log.update(epoch,train_log,val_log)
+
+        # Save checkpoint.
+        state = {'net': model.state_dict(),'optimizer':optimizer.state_dict(),'epoch': epoch}
+        torch.save(state, os.path.join('./output/{}'.format(args.save), 'latest_model.pth'))
+        trigger += 1
+        if val_log['Val Loss'] < best[1]:
+            print('Saving best model')
+            torch.save(state, os.path.join('./output/{}'.format(args.save), 'best_model.pth'))
+            best[0] = epoch
+            best[1] = val_log['Val Loss']
+            trigger = 0
+        print('Best performance at Epoch: {} | {}'.format(best[0],best[1]))
+        # early stopping
+        if args.early_stop is not None:
+            if trigger >= args.early_stop:
+                print("=> early stopping")
+                break
+        torch.cuda.empty_cache()
