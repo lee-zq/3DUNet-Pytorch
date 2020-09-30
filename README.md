@@ -18,8 +18,8 @@ Scipy
 1. Download dataset from google drive: [Liver Tumor Segmentation Challenge.](https://drive.google.com/drive/folders/0B0vscETPGI1-Q1h1WFdEM2FHSUE)  
 Or from my share: https://pan.baidu.com/s/1WgP2Ttxn_CV-yRT4UyqHWw 
 Extraction code：hfl8   
-2. Then you need decompress the dataset. It is recommended to use batch1(0~27) of the LiTS dataset as the testset
- and batch2(28~130) as the trainset. Please put the volume data and segmentation labels of trainset and testset into different local folders, 
+2. Then you need decompress the dataset. It is recommended to use batch1(0\~27) of the LiTS dataset as the testset
+ and batch2(28\~130) as the trainset. Please put the volume data and segmentation labels of trainset and testset into different local folders, 
 such as:  
 ```
 raw_dataset:
