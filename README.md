@@ -13,6 +13,28 @@ SimpleITK
 Tensorboard
 Scipy
 ```
+### Code Structure
+```angular2
+├── config.py        # Configuration information for training and testing
+├── dataset          # Training and testing dataset
+│   ├── dataset_lits_faster.py 
+│   ├── dataset_lits.py
+│   └── test_dataset.py
+├── models           # Model design
+│   ├── nn
+│   └── Unet.py
+├── output           # Trained model
+├── preprocess
+│   └── preprocess_LiTS.py
+├── test.py          # Test code
+├── train_faster.py  # Quick training code
+├── train.py         # Standard training code
+└── utils            # Some related tools
+    ├── common.py
+    ├── init_util.py
+    ├── logger.py
+    ├── metrics.py
+```
 ## Quickly Start
 ### 1) LITS2017 dataset preprocessing: 
 1. Download dataset from google drive: [Liver Tumor Segmentation Challenge.](https://drive.google.com/drive/folders/0B0vscETPGI1-Q1h1WFdEM2FHSUE)  
