@@ -59,8 +59,8 @@ def train(model, train_loader, optimizer):
         # loss = nn.CrossEntropyLoss()(output,target)
         # loss=metrics.SoftDiceLoss()(output,target)
         # loss=nn.MSELoss()(output,target)
-        loss = metrics.DiceMeanLoss()(output, target)
-        # loss=metrics.WeightDiceLoss()(output,target)
+        # loss = metrics.DiceMeanLoss()(output, target)
+        loss=metrics.WeightDiceLoss()(output,target)
         # loss=metrics.CrossEntropy()(output,target)
         loss.backward()
         optimizer.step()
@@ -79,6 +79,8 @@ def train(model, train_loader, optimizer):
 
 if __name__ == '__main__':
     args = config.args
+    save_path = os.path.join('./output', args.save)
+    if not os.path.exists(save_path): os.mkdir(save_path)
     device = torch.device('cpu' if args.cpu else 'cuda')
     # data info
     train_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='train')
@@ -91,7 +93,7 @@ if __name__ == '__main__':
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
 
-    log = logger.Logger('./output/{}'.format(args.save))
+    log = logger.Logger(save_path)
 
     best = [0,np.inf] # 初始化最优模型的epoch和performance
     trigger = 0  # early stop 计数器
@@ -103,11 +105,11 @@ if __name__ == '__main__':
 
         # Save checkpoint.
         state = {'net': model.state_dict(),'optimizer':optimizer.state_dict(),'epoch': epoch}
-        torch.save(state, os.path.join('./output/{}'.format(args.save), 'latest_model.pth'))
+        torch.save(state, os.path.join(save_path, 'latest_model.pth'))
         trigger += 1
         if val_log['Val Loss'] < best[1]:
             print('Saving best model')
-            torch.save(state, os.path.join('./output/{}'.format(args.save), 'best_model.pth'))
+            torch.save(state, os.path.join(save_path, 'best_model.pth'))
             best[0] = epoch
             best[1] = val_log['Val Loss']
             trigger = 0

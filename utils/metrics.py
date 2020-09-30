@@ -80,13 +80,13 @@ class WeightDiceLoss(nn.Module):
     def forward(self, logits, targets):
 
         num_sum = torch.sum(targets, dim=(0, 2, 3, 4))
-        w = torch.Tensor([0, 0, 0]).cuda()
+        w = torch.Tensor([0.2, 0.5, 0.3]).cuda()
         for i in range(targets.size(1)):
             if (num_sum[i] < 1):
                 w[i] = 0
             else:
                 w[i] = (0.1 * num_sum[i] + num_sum[i - 1] + num_sum[i - 2] + 1) / (torch.sum(num_sum) + 1)
-        print(w)
+        # print(w)
         inter = w * torch.sum(targets * logits, dim=(0, 2, 3, 4))
         inter = torch.sum(inter)
 
