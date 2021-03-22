@@ -9,7 +9,7 @@ from utils import logger, init_util, metrics,common
 import os
 import numpy as np
 from collections import OrderedDict
-# update 2021.03.22
+
 def val(model, val_loader):
     model.eval()
     val_loss = 0

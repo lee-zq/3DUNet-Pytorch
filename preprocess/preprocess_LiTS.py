@@ -93,11 +93,8 @@ class LITS_fix:
             f.write(str(name_list[i]) + "\n")
         f.close()
 
-def main():
-    raw_dataset_path = 'F:/datasets/LiTS/train/'
-    fixed_dataset_path = '../fixed_data/'
-    
-    LITS_fix(raw_dataset_path,fixed_dataset_path)
-
 if __name__ == '__main__':
-    main()
+    raw_dataset_path = '/ssd/lzq/dataset/LiTS/train/'
+    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits/'
+
+    LITS_fix(raw_dataset_path,fixed_dataset_path)
