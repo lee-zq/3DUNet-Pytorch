@@ -11,7 +11,7 @@ parser.add_argument('--cpu', action='store_true',
 parser.add_argument('--seed', type=int, default=1, help='random seed')
 
 # data in/out and dataset
-parser.add_argument('--dataset_path',default = './fixed_data',help='fixed trainset root path')
+parser.add_argument('--dataset_path',default = '/ssd/lzq/dataset/fixed_lits',help='fixed trainset root path')
 
 parser.add_argument('--save',default='model1',help='save path of trained model')
 

@@ -4,8 +4,8 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 import config
-from models.Unet import UNet, RecombinationBlock
-from utils import logger, init_util, metrics,common
+from models.UNet import UNet3D, RecombinationBlock
+from utils import logger, init_util, metrics, common
 import os
 import numpy as np
 from collections import OrderedDict
@@ -85,10 +85,10 @@ if __name__ == '__main__':
     # data info
     train_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='train')
     val_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='val')
-    train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=1, shuffle=True)
-    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=1, shuffle=True)
+    train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=4, shuffle=True)
+    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=4, shuffle=False)
     # model info
-    model = UNet(1, [16, 32, 48, 64, 96], 3, net_mode='3d',conv_block=RecombinationBlock).to(device)
+    model = UNet3D(1, [16, 32, 48, 64, 96], class_num=3,conv_block=RecombinationBlock).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
