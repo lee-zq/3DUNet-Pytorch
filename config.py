@@ -26,8 +26,6 @@ parser.add_argument('--epochs', type=int, default=100, metavar='N',help='number 
 
 parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',help='learning rate (default: 0.01)')
 
-parser.add_argument('--momentum', type=float, default=0.5, metavar='M',help='SGD momentum (default: 0.5)')
-
 parser.add_argument('--early-stop', default=10, type=int, help='early stopping (default: 20)')
 args = parser.parse_args()
 

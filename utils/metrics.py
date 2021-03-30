@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+import numpy as np
 
 
 def cross_entropy_2D(input, target, weight=None, size_average=True):
@@ -80,7 +81,7 @@ class WeightDiceLoss(nn.Module):
     def forward(self, logits, targets):
 
         num_sum = torch.sum(targets, dim=(0, 2, 3, 4))
-        w = torch.Tensor([0.2, 0.5, 0.3]).cuda()
+        w = torch.Tensor([0.1, 0.5, 0.4]).cuda()
         for i in range(targets.size(1)):
             if (num_sum[i] < 1):
                 w[i] = 0
@@ -109,3 +110,49 @@ def P(logits, targets):
 
 def TP(logits, targets):
     return torch.sum(targets[:, 2, :, :, :] * logits[:, 2, :, :, :])
+
+class AverageLoss(object):
+    """Computes and stores the average and current value for calculate average loss"""
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+        # print(self.val)
+
+class AverageDice(object):
+    """Computes and stores the average and current value for calculate average loss"""
+    def __init__(self,class_num=3):
+        self.class_num = class_num
+        self.reset()
+
+    def reset(self):
+        self.val = np.asarray([0]*self.class_num, dtype='float64')
+        self.avg = np.asarray([0]*self.class_num, dtype='float64')
+        self.sum = np.asarray([0]*self.class_num, dtype='float64')
+        self.count = 0
+
+    def update(self, logits, targets):
+        self.val = self.get_dices(logits, targets)
+        self.sum += self.val
+        self.count += targets.size()[1]
+        self.avg = self.sum / self.count
+        # print(self.val)
+
+    def get_dices(self, logits, targets):
+        dices = []
+        for class_index in range(targets.size()[1]):
+            inter = torch.sum(logits[:, class_index, :, :, :] * targets[:, class_index, :, :, :])
+            union = torch.sum(logits[:, class_index, :, :, :]) + torch.sum(targets[:, class_index, :, :, :])
+            dice = (2. * inter + 1) / (union + 1)
+            dices.append(dice.item())
+        return np.asarray(dices)

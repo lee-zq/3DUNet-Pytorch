@@ -12,10 +12,8 @@ from collections import OrderedDict
 
 def val(model, val_loader):
     model.eval()
-    val_loss = 0
-    val_dice0 = 0
-    val_dice1 = 0
-    val_dice2 = 0
+    val_loss = metrics.AverageLoss()
+    val_dice = metrics.AverageDice()
     with torch.no_grad():
         for idx,(data, target) in tqdm(enumerate(val_loader),total=len(val_loader)):
             target = common.to_one_hot_3d(target.long())
@@ -23,32 +21,19 @@ def val(model, val_loader):
             data, target = data.to(device), target.to(device)
             output = model(data)
 
-            loss = metrics.DiceMeanLoss()(output, target)
-            dice0 = metrics.dice(output, target, 0)
-            dice1 = metrics.dice(output, target, 1)
-            dice2 = metrics.dice(output, target, 2)
+            loss=metrics.WeightDiceLoss()(output,target)
+            val_loss.update(loss.item(),data.size()[0])
+            val_dice.update(output, target)
 
-            val_loss += float(loss)
-            val_dice0 += float(dice0)
-            val_dice1 += float(dice1)
-            val_dice2 += float(dice2)
-
-    val_loss /= len(val_loader)
-    val_dice0 /= len(val_loader)
-    val_dice1 /= len(val_loader)
-    val_dice2 /= len(val_loader)
-
-    return OrderedDict({'Val Loss': val_loss, 'Val dice0': val_dice0,
-                        'Val dice1': val_dice1,'Val dice2': val_dice2})
-
+    return OrderedDict({'Val Loss': val_loss.avg, 'Val dice0': val_dice.avg[0],
+                        'Val dice1': val_dice.avg[1],'Val dice2': val_dice.avg[2]})
 
 def train(model, train_loader, optimizer):
-    print("=======Epoch:{}=======".format(epoch))
+    print("=======Epoch:{}=======lr:{}".format(epoch,optimizer.state_dict()['param_groups'][0]['lr']))
     model.train()
-    train_loss = 0
-    train_dice0 = 0
-    train_dice1 = 0
-    train_dice2 = 0
+    train_loss = metrics.AverageLoss()
+    train_dice = metrics.AverageDice()
+
     for idx, (data, target) in tqdm(enumerate(train_loader),total=len(train_loader)):
         target = common.to_one_hot_3d(target.long())
         data, target = data.float(), target.float()
@@ -65,17 +50,11 @@ def train(model, train_loader, optimizer):
         loss.backward()
         optimizer.step()
 
-        train_loss += float(loss)
-        train_dice0 += float(metrics.dice(output, target, 0))
-        train_dice1 += float(metrics.dice(output, target, 1))
-        train_dice2 += float(metrics.dice(output, target, 2))
-    train_loss /= len(train_loader)
-    train_dice0 /= len(train_loader)
-    train_dice1 /= len(train_loader)
-    train_dice2 /= len(train_loader)
+        train_loss.update(loss.item(),data.size()[0])
+        train_dice.update(output, target)
 
-    return OrderedDict({'Train Loss': train_loss, 'Train dice0': train_dice0,
-                       'Train dice1': train_dice1,'Train dice2': train_dice2})
+    return OrderedDict({'Train Loss': train_loss.avg, 'Train dice0': train_dice.avg[0],
+                       'Train dice1': train_dice.avg[1],'Train dice2': train_dice.avg[2]})
 
 if __name__ == '__main__':
     args = config.args
@@ -85,10 +64,10 @@ if __name__ == '__main__':
     # data info
     train_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='train')
     val_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='val')
-    train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=4, shuffle=True)
-    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=4, shuffle=False)
+    train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=args.n_threads, shuffle=True)
+    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=args.n_threads, shuffle=False)
     # model info
-    model = UNet3D(1, [16, 32, 48, 64, 96], class_num=3,conv_block=RecombinationBlock).to(device)
+    model = UNet3D(in_channels=1, filter_num_list=[16, 32, 64, 128, 256], class_num=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
@@ -119,4 +98,4 @@ if __name__ == '__main__':
             if trigger >= args.early_stop:
                 print("=> early stopping")
                 break
-        torch.cuda.empty_cache()
+        torch.cuda.empty_cache()    
