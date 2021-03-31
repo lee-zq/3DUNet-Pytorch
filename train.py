@@ -10,47 +10,43 @@ import os
 import numpy as np
 from collections import OrderedDict
 
-def val(model, val_loader):
+def val(model, val_loader, criterion):
     model.eval()
-    val_loss = metrics.AverageLoss()
-    val_dice = metrics.AverageDice()
+    val_loss = metrics.LossAverage()
+    val_dice = metrics.DiceAverage()
     with torch.no_grad():
         for idx,(data, target) in tqdm(enumerate(val_loader),total=len(val_loader)):
-            target = common.to_one_hot_3d(target.long())
-            data, target = data.float(), target.float()
+            data, target = data.float(), target.long()
+            target = common.to_one_hot_3d(target)
             data, target = data.to(device), target.to(device)
             output = model(data)
 
-            loss=metrics.WeightDiceLoss()(output,target)
-            val_loss.update(loss.item(),data.size()[0])
+            loss=criterion(output, target)
+            
+            val_loss.update(loss.item(),data.size(0))
             val_dice.update(output, target)
 
     return OrderedDict({'Val Loss': val_loss.avg, 'Val dice0': val_dice.avg[0],
                         'Val dice1': val_dice.avg[1],'Val dice2': val_dice.avg[2]})
 
-def train(model, train_loader, optimizer):
+def train(model, train_loader, optimizer, criterion):
     print("=======Epoch:{}=======lr:{}".format(epoch,optimizer.state_dict()['param_groups'][0]['lr']))
     model.train()
-    train_loss = metrics.AverageLoss()
-    train_dice = metrics.AverageDice()
+    train_loss = metrics.LossAverage()
+    train_dice = metrics.DiceAverage()
 
     for idx, (data, target) in tqdm(enumerate(train_loader),total=len(train_loader)):
-        target = common.to_one_hot_3d(target.long())
-        data, target = data.float(), target.float()
+        data, target = data.float(), target.long()
+        target = common.to_one_hot_3d(target)
         data, target = data.to(device), target.to(device)
         output = model(data)
         optimizer.zero_grad()
 
-        # loss = nn.CrossEntropyLoss()(output,target)
-        # loss=metrics.SoftDiceLoss()(output,target)
-        # loss=nn.MSELoss()(output,target)
-        # loss = metrics.DiceMeanLoss()(output, target)
-        loss=metrics.WeightDiceLoss()(output,target)
-        # loss=metrics.CrossEntropy()(output,target)
+        loss = criterion(output, target)
         loss.backward()
         optimizer.step()
-
-        train_loss.update(loss.item(),data.size()[0])
+        
+        train_loss.update(loss.item(),data.size(0))
         train_dice.update(output, target)
 
     return OrderedDict({'Train Loss': train_loss.avg, 'Train dice0': train_dice.avg[0],
@@ -71,15 +67,20 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
-
+    
+    # loss=metrics.SoftDiceLoss()
+    # loss = metrics.DiceMeanLoss()
+    loss=metrics.WeightDiceLoss()
+    # loss=metrics.DiceMeanLoss()
+    
     log = logger.Logger(save_path)
 
     best = [0,np.inf] # 初始化最优模型的epoch和performance
     trigger = 0  # early stop 计数器
     for epoch in range(1, args.epochs + 1):
         common.adjust_learning_rate(optimizer, epoch, args)
-        train_log = train(model, train_loader, optimizer)
-        val_log = val(model, val_loader)
+        train_log = train(model, train_loader, optimizer, loss)
+        val_log = val(model, val_loader, loss)
         log.update(epoch,train_log,val_log)
 
         # Save checkpoint.

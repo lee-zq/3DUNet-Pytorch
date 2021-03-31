@@ -41,23 +41,6 @@ class SoftDiceLoss(nn.Module):
         score = 1 - score.sum() / num
         return score
 
-
-class DiceMean(nn.Module):
-    def __init__(self):
-        super(DiceMean, self).__init__()
-
-    def forward(self, logits, targets):
-        class_num = logits.size(1)
-
-        dice_sum = 0
-        for i in range(class_num):
-            inter = torch.sum(logits[:, i, :, :, :] * targets[:, i, :, :, :])
-            union = torch.sum(logits[:, i, :, :, :]) + torch.sum(targets[:, i, :, :, :])
-            dice = (2. * inter + 1) / (union + 1)
-            dice_sum += dice
-        return dice_sum / class_num
-
-
 class DiceMeanLoss(nn.Module):
     def __init__(self):
         super(DiceMeanLoss, self).__init__()
@@ -102,16 +85,7 @@ def dice(logits, targets, class_index):
     dice = (2. * inter + 1) / (union + 1)
     return dice
 
-def T(logits, targets):
-    return torch.sum(targets[:, 2, :, :, :])
-
-def P(logits, targets):
-    return torch.sum(logits[:, 2, :, :, :])
-
-def TP(logits, targets):
-    return torch.sum(targets[:, 2, :, :, :] * logits[:, 2, :, :, :])
-
-class AverageLoss(object):
+class LossAverage(object):
     """Computes and stores the average and current value for calculate average loss"""
     def __init__(self):
         self.reset()
@@ -129,7 +103,7 @@ class AverageLoss(object):
         self.avg = self.sum / self.count
         # print(self.val)
 
-class AverageDice(object):
+class DiceAverage(object):
     """Computes and stores the average and current value for calculate average loss"""
     def __init__(self,class_num=3):
         self.class_num = class_num

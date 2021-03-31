@@ -16,7 +16,8 @@ class Logger():
         item.update(train_log)
         item.update(val_log)
         item = dict_round(item,4) # 保留小数点后四位有效数字
-        print(item)
+        print("\033[0;33mTrain:\033[0m",dict_round(train_log,4))
+        print("\033[0;33mValid:\033[0m",dict_round(val_log,4))
         self.update_csv(item)
         self.update_tensorboard(item)
 
