@@ -1,7 +1,6 @@
 """
 在测试集目录中进行测试，给出性能评价指标和可视化结果
 """
-
 from dataset.dataset_lits import Lits_DataSet
 from torch.utils.data import DataLoader
 import torch

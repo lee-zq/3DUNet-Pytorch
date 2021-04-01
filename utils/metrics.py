@@ -1,18 +1,12 @@
+"""
+loss functions referenced from 
+https://github.com/MontaEllis/Pytorch-Medical-Segmentation/blob/master/loss_function.py
+"""
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
 import numpy as np
-
-
-def cross_entropy_2D(input, target, weight=None, size_average=True):
-    n, c, h, w = input.size()
-    log_p = F.log_softmax(input, dim=1)
-    log_p = log_p.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
-    target = target.view(target.numel())
-    loss = F.nll_loss(log_p, target, weight=weight, size_average=False)
-    if size_average:
-        loss /= float(target.numel())
-    return loss
 
 def cross_entropy_3D(input, target, weight=None, size_average=True):
     n, c, h, w, s = input.size()
@@ -24,60 +18,78 @@ def cross_entropy_3D(input, target, weight=None, size_average=True):
         loss /= float(target.numel())
     return loss
 
-class SoftDiceLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(SoftDiceLoss, self).__init__()
+class BinaryDiceLoss(nn.Module):
+    """Dice loss of binary class
+    Args:
+        smooth: A float number to smooth loss, and avoid NaN error, default: 1
+        p: Denominator value: \sum{x^p} + \sum{y^p}, default: 2
+        predict: A tensor of shape [N, *]
+        target: A tensor of shape same with predict
+        reduction: Reduction method to apply, return mean over batch if 'mean',
+            return sum if 'sum', return a tensor of shape [N,] if 'none'
+    Returns:
+        Loss tensor according to arg reduction
+    Raise:
+        Exception if unexpected reduction
+    """
+    def __init__(self, smooth=1, p=2, reduction='mean'):
+        super(BinaryDiceLoss, self).__init__()
+        self.smooth = smooth
+        self.p = p
+        self.reduction = reduction
 
-    def forward(self, logits, targets):
-        num = targets.size(0)
-        smooth = 1
+    def forward(self, predict, target):
+        assert predict.shape[0] == target.shape[0], "predict & target batch size don't match"
+        predict = predict.contiguous().view(predict.shape[0], -1)
+        target = target.contiguous().view(target.shape[0], -1)
 
-        probs = F.sigmoid(logits)
-        m1 = probs.view(num, -1)
-        m2 = targets.view(num, -1)
-        intersection = (m1 * m2)
+        num = torch.sum(torch.mul(predict, target), dim=1) + self.smooth
+        den = torch.sum(predict.pow(self.p) + target.pow(self.p), dim=1) + self.smooth
 
-        score = 2. * (intersection.sum(1) + smooth) / (m1.sum(1) + m2.sum(1) + smooth)
-        score = 1 - score.sum() / num
-        return score
+        loss = 1 - num / den
 
-class DiceMeanLoss(nn.Module):
-    def __init__(self):
-        super(DiceMeanLoss, self).__init__()
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        elif self.reduction == 'none':
+            return loss
+        else:
+            raise Exception('Unexpected reduction {}'.format(self.reduction))
 
-    def forward(self, logits, targets):
-        class_num = logits.size()[1]
+class DiceLoss(nn.Module):
+    """Dice loss, need one hot encode input
+    Args:
+        weight: An array of shape [num_classes,]
+        ignore_index: class index to ignore
+        predict: A tensor of shape [N, C, *]
+        target: A tensor of same shape with predict
+        other args pass to BinaryDiceLoss
+    Return:
+        same as BinaryDiceLoss
+    """
+    def __init__(self, weight=None, ignore_index=None, **kwargs):
+        super(DiceLoss, self).__init__()
+        self.kwargs = kwargs
+        self.weight = weight
+        self.ignore_index = ignore_index
 
-        dice_sum = 0
-        for i in range(class_num):
-            inter = torch.sum(logits[:, i, :, :, :] * targets[:, i, :, :, :])
-            union = torch.sum(logits[:, i, :, :, :]) + torch.sum(targets[:, i, :, :, :])
-            dice = (2. * inter + 1) / (union + 1)
-            dice_sum += dice
-        return 1 - dice_sum / class_num
+    def forward(self, predict, target):
+        assert predict.shape == target.shape, 'predict & target shape do not match'
+        dice = BinaryDiceLoss(**self.kwargs)
+        total_loss = 0
+        # predict = F.softmax(predict, dim=1)
 
+        for i in range(target.shape[1]):
+            if i != self.ignore_index:
+                dice_loss = dice(predict[:, i], target[:, i])
+                if self.weight is not None:
+                    assert self.weight.shape[0] == target.shape[1], \
+                        'Expect weight shape [{}], get[{}]'.format(target.shape[1], self.weight.shape[0])
+                    dice_loss *= self.weights[i]
+                total_loss += dice_loss
 
-class WeightDiceLoss(nn.Module):
-    def __init__(self):
-        super(WeightDiceLoss, self).__init__()
-
-    def forward(self, logits, targets):
-
-        num_sum = torch.sum(targets, dim=(0, 2, 3, 4))
-        w = torch.Tensor([0.1, 0.5, 0.4]).cuda()
-        for i in range(targets.size(1)):
-            if (num_sum[i] < 1):
-                w[i] = 0
-            else:
-                w[i] = (0.1 * num_sum[i] + num_sum[i - 1] + num_sum[i - 2] + 1) / (torch.sum(num_sum) + 1)
-        # print(w)
-        inter = w * torch.sum(targets * logits, dim=(0, 2, 3, 4))
-        inter = torch.sum(inter)
-
-        union = w * torch.sum(targets + logits, dim=(0, 2, 3, 4))
-        union = torch.sum(union)
-
-        return 1 - 2. * inter / union
+        return total_loss/target.shape[1]
 
 def dice(logits, targets, class_index):
     inter = torch.sum(logits[:, class_index, :, :, :] * targets[:, class_index, :, :, :])
@@ -118,7 +130,7 @@ class DiceAverage(object):
     def update(self, logits, targets):
         self.val = self.get_dices(logits, targets)
         self.sum += self.val
-        self.count += targets.size()[1]
+        self.count += 1
         self.avg = self.sum / self.count
         # print(self.val)
 

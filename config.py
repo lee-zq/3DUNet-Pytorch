@@ -22,11 +22,11 @@ parser.add_argument('--crop_size', type=list, default=[16, 96, 96],help='patch s
 parser.add_argument('--batch_size', type=list, default=8,help='batch size of trainset')
 
 # train
-parser.add_argument('--epochs', type=int, default=100, metavar='N',help='number of epochs to train (default: 10)')
+parser.add_argument('--epochs', type=int, default=200, metavar='N',help='number of epochs to train (default: 10)')
 
 parser.add_argument('--lr', type=float, default=0.0001, metavar='LR',help='learning rate (default: 0.01)')
 
-parser.add_argument('--early-stop', default=10, type=int, help='early stopping (default: 20)')
+parser.add_argument('--early-stop', default=None, type=int, help='early stopping (default: 20)')
 args = parser.parse_args()
 
 

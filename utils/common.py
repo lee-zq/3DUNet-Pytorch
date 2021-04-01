@@ -68,8 +68,7 @@ def random_crop_3d(img, label, crop_size):
     z_random = random.randint(0, random_z_max)
 
     crop_img = img[x_random:x_random + crop_size[0], y_random:y_random + crop_size[1], z_random:z_random + crop_size[2]]
-    crop_label = label[x_random:x_random + crop_size[0], y_random:y_random + crop_size[1],
-                 z_random:z_random + crop_size[2]]
+    crop_label = label[x_random:x_random + crop_size[0], y_random:y_random + crop_size[1],z_random:z_random + crop_size[2]]
 
     return crop_img, crop_label
 
@@ -88,6 +87,6 @@ def load_file_name_list(file_path):
 
 def adjust_learning_rate(optimizer, epoch, args):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = args.lr * (0.1 ** (epoch // 5))
+    lr = args.lr * (0.1 ** (epoch // 10))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr

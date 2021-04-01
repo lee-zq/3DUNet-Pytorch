@@ -39,9 +39,9 @@ def train(model, train_loader, optimizer, criterion):
         data, target = data.float(), target.long()
         target = common.to_one_hot_3d(target)
         data, target = data.to(device), target.to(device)
-        output = model(data)
         optimizer.zero_grad()
-
+        
+        output = model(data)
         loss = criterion(output, target)
         loss.backward()
         optimizer.step()
@@ -60,18 +60,22 @@ if __name__ == '__main__':
     # data info
     train_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='train')
     val_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='val')
+    # train_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='train')
+    # val_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='val')
     train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=args.n_threads, shuffle=True)
-    val_loader = DataLoader(dataset=val_set,batch_size=args.batch_size,num_workers=args.n_threads, shuffle=False)
+    val_loader = DataLoader(dataset=val_set,batch_size=1,num_workers=args.n_threads, shuffle=False)
+
     # model info
-    model = UNet3D(in_channels=1, filter_num_list=[16, 32, 64, 128, 256], class_num=3).to(device)
+    model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     init_util.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
     
     # loss=metrics.SoftDiceLoss()
     # loss = metrics.DiceMeanLoss()
-    loss=metrics.WeightDiceLoss()
+    # loss=metrics.WeightDiceLoss()
     # loss=metrics.DiceMeanLoss()
+    loss=metrics.DiceLoss()
     
     log = logger.Logger(save_path)
 

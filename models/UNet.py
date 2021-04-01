@@ -136,7 +136,7 @@ class UNet3D(nn.Module):
         x = self.up4(x, conv1)
 
         x = self.class_conv(x)
-        x = nn.Softmax(1)(x)
+        x = F.softmax(x,dim=1)
 
         return x
 
