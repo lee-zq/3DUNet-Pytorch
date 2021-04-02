@@ -90,10 +90,8 @@ class Mini_DataSet(Dataset):
 
 
 class Recompone_tool():
-    def __init__(self, save_path, filename, img_ori_shape, img_new_shape, C):
+    def __init__(self, img_ori_shape, img_new_shape, C):
         self.result = None
-        self.save_path = save_path
-        self.filename = filename
         self.ori_shape = img_ori_shape
         self.new_shape = img_new_shape
         self.C = C

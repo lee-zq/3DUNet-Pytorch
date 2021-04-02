@@ -40,7 +40,7 @@ def train(model, train_loader, optimizer, criterion):
         target = common.to_one_hot_3d(target)
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
-        
+
         output = model(data)
         loss = criterion(output, target)
         loss.backward()
@@ -75,7 +75,7 @@ if __name__ == '__main__':
     # loss = metrics.DiceMeanLoss()
     # loss=metrics.WeightDiceLoss()
     # loss=metrics.DiceMeanLoss()
-    loss=metrics.DiceLoss()
+    loss=metrics.DiceLoss(weight=np.array([0.2,0.3,0.5]))
     
     log = logger.Logger(save_path)
 

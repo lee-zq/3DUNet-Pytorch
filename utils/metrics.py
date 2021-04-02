@@ -86,7 +86,7 @@ class DiceLoss(nn.Module):
                 if self.weight is not None:
                     assert self.weight.shape[0] == target.shape[1], \
                         'Expect weight shape [{}], get[{}]'.format(target.shape[1], self.weight.shape[0])
-                    dice_loss *= self.weights[i]
+                    dice_loss *= self.weight[i]
                 total_loss += dice_loss
 
         return total_loss/target.shape[1]
@@ -128,13 +128,14 @@ class DiceAverage(object):
         self.count = 0
 
     def update(self, logits, targets):
-        self.val = self.get_dices(logits, targets)
+        self.val = get_dices(logits, targets)
         self.sum += self.val
         self.count += 1
         self.avg = self.sum / self.count
         # print(self.val)
 
-    def get_dices(self, logits, targets):
+    @staticmethod
+    def get_dices(logits, targets):
         dices = []
         for class_index in range(targets.size()[1]):
             inter = torch.sum(logits[:, class_index, :, :, :] * targets[:, class_index, :, :, :])
