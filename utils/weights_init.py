@@ -61,16 +61,3 @@ def init_weights(net, init_type='normal'):
         net.apply(weights_init_orthogonal)
     else:
         raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
-
-
-def adjust_learning_rate(optimizer, lr):
-    """Sets the learning rate to a fixed number"""
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-def print_network(net):
-    num_params = 0
-    for param in net.parameters():
-        num_params += param.numel()
-    print(net)
-    print('Total number of parameters: %d' % num_params)

@@ -23,24 +23,29 @@ class Lits_DataSet(Dataset):
 
 
     def __getitem__(self, index):
-        data, target = self.get_train_item_by_index(crop_size=self.crop_size, index=index,
+        data, target = self.get_item_by_index(crop_size=self.crop_size, index=index,
                                                      resize_scale=self.resize_scale)
         return torch.from_numpy(data), torch.from_numpy(target)
 
     def __len__(self):
         return len(self.filename_list)
 
-    def get_train_item_by_index(self,crop_size, index,resize_scale=1):
+    def get_item_by_index(self,crop_size, index,resize_scale=1):
         img, label = self.get_np_data_3d(self.filename_list[index],resize_scale=resize_scale)
-        # if self.mode == "train":
-        img, label = random_crop_3d(img, label, crop_size)
+        if self.mode == "train":
+            img, label = random_crop_3d(img, label, crop_size)
+        if self.mode == "val":
+            img, label = center_crop_3d(img, label, slice_num=16) # 取16个lices
+        print(img.shape,label.shape)
         return np.expand_dims(img,axis=0), label
 
     def get_np_data_3d(self, filename, resize_scale=1):
-        data_np = sitk_read_raw(self.dataset_path + '/data/' + filename, resize_scale=resize_scale)
+        data_np = sitk_read_raw(self.dataset_path + '/data/' + filename)
+        data_np = ndimage.zoom(data_np, zoom=self.resize_scale, order=3) # 双三次重采样
         data_np=norm_img(data_np)
-        label_np = sitk_read_raw(self.dataset_path + '/label/' + filename.replace('volume', 'segmentation'),
-                                resize_scale=resize_scale)
+
+        label_np = sitk_read_raw(self.dataset_path + '/label/' + filename.replace('volume', 'segmentation'))
+        label_np = ndimage.zoom(label_np, zoom=self.resize_scale, order=0) # 最近邻重采样
         return data_np, label_np
 
 # 测试代码

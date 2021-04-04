@@ -8,14 +8,15 @@ parser.add_argument('--n_threads', type=int, default=6,
                     help='number of threads for data loading')
 parser.add_argument('--cpu', action='store_true',
                     help='use cpu only')
-parser.add_argument('--seed', type=int, default=1, help='random seed')
+parser.add_argument('--seed', type=int, default=2021, help='random seed')
 
 # data in/out and dataset
 parser.add_argument('--dataset_path',default = '/ssd/lzq/dataset/fixed_lits',help='fixed trainset root path')
 
 parser.add_argument('--save',default='model1',help='save path of trained model')
 
-parser.add_argument('--resize_scale', type=float, default=0.5,help='resize scale for input data')
+parser.add_argument('--train_resize_scale', type=float, default=0.5,help='resize scale for input data')
+parser.add_argument('--test_resize_scale', type=float, default=1.0,help='resize scale for input data')
 
 parser.add_argument('--crop_size', type=list, default=[16, 96, 96],help='patch size of train samples after resize')
 

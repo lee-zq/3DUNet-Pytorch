@@ -5,7 +5,7 @@ import torch.optim as optim
 from tqdm import tqdm
 import config
 from models.UNet import UNet3D, RecombinationBlock
-from utils import logger, init_util, metrics, common
+from utils import logger, weights_init, metrics, common, loss
 import os
 import numpy as np
 from collections import OrderedDict
@@ -58,26 +58,22 @@ if __name__ == '__main__':
     if not os.path.exists(save_path): os.mkdir(save_path)
     device = torch.device('cpu' if args.cpu else 'cuda')
     # data info
-    train_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='train')
-    val_set = Lits_DataSet(args.crop_size, args.resize_scale, args.dataset_path, mode='val')
-    # train_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='train')
-    # val_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.resize_scale, args.dataset_path, mode='val')
+    train_set = Lits_DataSet(args.crop_size, args.train_resize_scale, args.dataset_path, mode='train')
+    val_set = Lits_DataSet(args.crop_size, args.train_resize_scale, args.dataset_path, mode='val')
+    # train_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.train_resize_scale, args.dataset_path, mode='train')
+    # val_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.train_resize_scale, args.dataset_path, mode='val')
     train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=args.n_threads, shuffle=True)
     val_loader = DataLoader(dataset=val_set,batch_size=1,num_workers=args.n_threads, shuffle=False)
 
     # model info
     model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=3).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    init_util.print_network(model)
+    common.print_network(model)
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
     
-    # loss=metrics.SoftDiceLoss()
-    # loss = metrics.DiceMeanLoss()
-    # loss=metrics.WeightDiceLoss()
-    # loss=metrics.DiceMeanLoss()
-    loss=metrics.DiceLoss(weight=np.array([0.2,0.3,0.5]))
+    loss=loss.DiceLoss(weight=np.array([0.2,0.3,0.5]))
     
-    log = logger.Logger(save_path)
+    log = logger.Train_Logger(save_path,"train_log")
 
     best = [0,np.inf] # 初始化最优模型的epoch和performance
     trigger = 0  # early stop 计数器

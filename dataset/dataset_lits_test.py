@@ -7,20 +7,23 @@ from torch.utils.data import Dataset, DataLoader
 from glob import glob
 import math
 import SimpleITK as sitk
-from utils.common import to_one_hot_3d
 
-class Mini_DataSet(Dataset):
+class Img_DataSet(Dataset):
     def __init__(self, data_path, label_path, cut, resize_scale=1):
         self.resize_scale = resize_scale
         self.label_path = label_path
         self.data_path = data_path
         self.n_labels = 3
         # 读取一个data文件并归一化 shape:[s,h,w]
-        self.data_np = sitk_read_raw(self.data_path, resize_scale=self.resize_scale)
+        self.data_np = sitk_read_raw(self.data_path)
+        if self.resize_scale != 1:
+            self.data_np = ndimage.zoom(self.data_np, zoom=self.resize_scale, order=3) # 双三次重采样
         self.data_np = norm_img(self.data_np)
         self.ori_shape = self.data_np.shape
         # 读取一个label文件 shape:[s,h,w]
-        self.label_np = sitk_read_raw(self.label_path, resize_scale=self.resize_scale)
+        self.label_np = sitk_read_raw(self.label_path)
+        if self.resize_scale != 1:
+            self.label_np = ndimage.zoom(self.label_np, zoom=self.resize_scale, order=0) # 最近邻重采样
         # 扩展一定数量的slices，以保证卷积下采样合理运算
         self.cut = cut
 
@@ -59,7 +62,7 @@ class Mini_DataSet(Dataset):
 
         tmp_full_imgs = np.zeros((s, h, w))
         tmp_full_imgs[:img_s, :img_h, 0:img_w] = img
-        print("new images shape: \n" + str(img.shape))
+        print("Padded images shape: " + str(img.shape))
         return tmp_full_imgs
 
     # Divide all the full_imgs in pacthes
@@ -73,8 +76,8 @@ class Mini_DataSet(Dataset):
         N_patches_h = (img_h - C['patch_h']) // C['stride_h'] + 1
         N_patches_w = (img_w - C['patch_w']) // C['stride_w'] + 1
         N_patches_img = N_patches_s * N_patches_h * N_patches_w
-        print("Number of patches s/h/w : ", N_patches_s, N_patches_h, N_patches_w)
-        print("number of patches per image: " + str(N_patches_img))
+        print("Patches number of the image:{} [s={} | h={} | w={}]"\
+                .format(N_patches_img, N_patches_s, N_patches_h, N_patches_w))
         patches = np.empty((N_patches_img, C['patch_s'], C['patch_h'], C['patch_w']))
         iter_tot = 0  # iter over the total number of patches (N_patches)
         for s in range(N_patches_s):  # loop over the full images
@@ -116,8 +119,8 @@ class Recompone_tool():
         N_patches_h = (self.new_shape[1] - patch_h) // self.C['stride_h'] + 1
         N_patches_w = (self.new_shape[2] - patch_w) // self.C['stride_w'] + 1
         N_patches_img = N_patches_s * N_patches_h * N_patches_w
-        print("N_patches_s/h/w:", N_patches_s, N_patches_h, N_patches_w)
-        print("N_patches_img: " + str(N_patches_img))
+        # print("N_patches_s/h/w:", N_patches_s, N_patches_h, N_patches_w)
+        # print("N_patches_img: " + str(N_patches_img))
         assert (self.result.shape[0] == N_patches_img)
 
         full_prob = torch.zeros((3, self.new_shape[0], self.new_shape[1],
@@ -137,36 +140,33 @@ class Recompone_tool():
         assert (k == self.result.size(0))
         assert (torch.min(full_sum) >= 1.0)  # at least one
         final_avg = full_prob / full_sum
-        print(final_avg.size())
+        # print(final_avg.size())
         assert (torch.max(final_avg) <= 1.0)  # max value for a pixel is 1.0
         assert (torch.min(final_avg) >= 0.0)  # min value for a pixel is 0.0
         img = final_avg[:, :self.ori_shape[0], :self.ori_shape[1], :self.ori_shape[2]]
         return img
 
 
-def test_Datasets(dataset_path, cut_param, resize_scale=1):
-    data_list = glob(os.path.join(dataset_path, 'data/*'))
-    label_list = glob(os.path.join(dataset_path, 'label/*'))
-    data_list.sort()
-    label_list.sort()
-    print("The numbers of testset is ", len(data_list))
+def Test_Datasets(dataset_path, cut_param, resize_scale=1):
+    data_list = sorted(glob(os.path.join(dataset_path, 'data/*')))
+    label_list = sorted(glob(os.path.join(dataset_path, 'label/*')))
+    print("The number of test samples is: ", len(data_list))
     for datapath, labelpath in zip(data_list, label_list):
-        print("Start evaluate ", datapath)
-        yield Mini_DataSet(datapath, labelpath, cut_param,resize_scale=resize_scale), datapath.split('-')[-1]
+        print("\nStart Evaluate: ", datapath)
+        yield Img_DataSet(datapath, labelpath, cut_param,resize_scale=resize_scale), datapath.split('-')[-1]
 
 # 测试代码
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-
-def main():
-    test_path = r'F:\datasets\LiTS\test'
+if __name__ == '__main__':
+    test_path = '/ssd/lzq/dataset/LiTS/test'
     cut_param = {'patch_s': 32,
                  'patch_h': 128,
                  'patch_w': 128,
                  'stride_s': 24,
                  'stride_h': 96,
                  'stride_w': 96}
-    for dataset,file_idx in test_Datasets(test_path, cut_param):
+    for dataset,file_idx in Test_Datasets(test_path, cut_param):
         data_loader = DataLoader(dataset=dataset, batch_size=4, num_workers=0, shuffle=False)
         print(len(data_loader))
         with torch.no_grad():
@@ -175,6 +175,3 @@ def main():
                 print(data.shape)
                 plt.imshow(data[0, 0, 0])
                 plt.show()
-
-if __name__ == '__main__':
-    main()
