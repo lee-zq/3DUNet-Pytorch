@@ -1,7 +1,6 @@
 """
 在测试集目录中进行测试，给出性能评价指标和可视化结果
 """
-from dataset.dataset_lits import Lits_DataSet
 from torch.utils.data import DataLoader
 import torch
 from tqdm import tqdm
@@ -17,13 +16,13 @@ from utils.common import load_file_name_list
 from utils.metrics import DiceAverage
 from collections import OrderedDict
 
-def test(model, img_dataset):
-    dataloader = DataLoader(dataset=img_dataset, batch_size=4, num_workers=0, shuffle=False)
+def test(model, img_dataset, n_labels):
+    dataloader = DataLoader(dataset=img_dataset, batch_size=1, num_workers=0, shuffle=False)
     model.eval()
-    test_dice = DiceAverage()
-    save_tool = Recompone_tool(img_dataset.ori_shape,img_dataset.new_shape,img_dataset.cut)
+    test_dice = DiceAverage(n_labels)
+    save_tool = Recompone_tool(img_dataset.ori_shape, img_dataset.new_shape, n_labels, img_dataset.cut_param)
     target = torch.from_numpy(np.expand_dims(img_dataset.label_np,axis=0)).long()
-    target = to_one_hot_3d(target)
+    target = to_one_hot_3d(target, n_labels)
     with torch.no_grad():
         for data in tqdm(dataloader,total=len(dataloader)):
             data = data.unsqueeze(1)
@@ -35,7 +34,10 @@ def test(model, img_dataset):
     pred = torch.unsqueeze(pred,dim=0)
 
     test_dice.update(pred, target)
-    test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1],'Test dice2': test_dice.avg[2]})
+    if n_labels==2:
+        test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1]})
+    else:
+        test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1],'Test dice2': test_dice.avg[2]})
 
     pred_img = torch.argmax(pred,dim=1)
     # save_tool.save(filename)
@@ -57,10 +59,10 @@ if __name__ == '__main__':
         os.mkdir(result_save_path)
     
     cut_param = {'patch_s': 32, 'patch_h': 128, 'patch_w': 128,
-                 'stride_s': 24, 'stride_h': 96, 'stride_w': 96}
+                 'stride_s': 24, 'stride_h': 64, 'stride_w': 64}
     datasets = Test_Datasets(test_data_path,cut_param,resize_scale=args.test_resize_scale)
     for img_dataset,file_idx in datasets:
-        test_dice,pred_img = test(model, img_dataset)
+        test_dice,pred_img = test(model, img_dataset, args.n_labels)
         test_log.update(file_idx, test_dice)
         # pred_img=ndimage.zoom(pred_img,1/args.resize_scale,order=0) #rescale
         pred_img = sitk.GetImageFromArray(np.squeeze(np.array(pred_img.numpy(),dtype='uint8'),axis=0))

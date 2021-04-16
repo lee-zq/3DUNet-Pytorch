@@ -9,27 +9,36 @@ import math
 import SimpleITK as sitk
 
 class Img_DataSet(Dataset):
-    def __init__(self, data_path, label_path, cut, resize_scale=1):
+    def __init__(self, data_path, label_path, cut_param, resize_scale=1):
         self.resize_scale = resize_scale
         self.label_path = label_path
         self.data_path = data_path
-        self.n_labels = 3
+
+        self.upper = 200
+        self.lower = -200
+        self.expand_slice = 20  # 轴向外侧扩张的slice数量
+        self.size = 48  # 取样的slice数量
+        self.x_down_scale = 0.5
+        self.y_down_scale = 0.5
+        self.slice_thickness = 1
+
         # 读取一个data文件并归一化 shape:[s,h,w]
-        self.data_np = sitk_read_raw(self.data_path)
-        if self.resize_scale != 1:
-            self.data_np = ndimage.zoom(self.data_np, zoom=self.resize_scale, order=3) # 双三次重采样
-        self.data_np = norm_img(self.data_np)
+        self.ct = sitk.ReadImage(self.data_path,sitk.sitkInt16)
+        self.data_np = sitk.GetArrayFromImage(self.ct)
+
+        self.data_np = ndimage.zoom(self.data_np, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=3) # 双三次重采样
+        self.data_np = self.data_np/200.0
         self.ori_shape = self.data_np.shape
         # 读取一个label文件 shape:[s,h,w]
-        self.label_np = sitk_read_raw(self.label_path)
-        if self.resize_scale != 1:
-            self.label_np = ndimage.zoom(self.label_np, zoom=self.resize_scale, order=0) # 最近邻重采样
+        self.seg = sitk.ReadImage(self.label_path,sitk.sitkInt8)
+        self.label_np = sitk.GetArrayFromImage(self.seg)
+        self.label_np = ndimage.zoom(self.label_np, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=0) # 最近邻重采样
         # 扩展一定数量的slices，以保证卷积下采样合理运算
-        self.cut = cut
+        self.cut_param = cut_param
 
-        self.data_np = self.padding_img(self.data_np, self.cut)
+        self.data_np = self.padding_img(self.data_np, self.cut_param)
         self.new_shape = self.data_np.shape
-        self.data_np = self.extract_ordered_overlap(self.data_np, self.cut)
+        self.data_np = self.extract_ordered_overlap(self.data_np, self.cut_param)
 
     def __getitem__(self, index):
         data = self.data_np[index]
@@ -93,11 +102,12 @@ class Img_DataSet(Dataset):
 
 
 class Recompone_tool():
-    def __init__(self, img_ori_shape, img_new_shape, C):
+    def __init__(self, img_ori_shape, img_new_shape, n_labels, Cut_para):
         self.result = None
         self.ori_shape = img_ori_shape
         self.new_shape = img_new_shape
-        self.C = C
+        self.n_labels = n_labels
+        self.C = Cut_para
 
     def add_result(self, tensor):
         # tensor = tensor.detach().cpu() # shape: [N,class,s,h,w]
@@ -123,9 +133,8 @@ class Recompone_tool():
         # print("N_patches_img: " + str(N_patches_img))
         assert (self.result.shape[0] == N_patches_img)
 
-        full_prob = torch.zeros((3, self.new_shape[0], self.new_shape[1],
-                              self.new_shape[2]))  # itialize to zero mega array with sum of Probabilities
-        full_sum = torch.zeros((3, self.new_shape[0], self.new_shape[1], self.new_shape[2]))
+        full_prob = torch.zeros((self.n_labels, self.new_shape[0], self.new_shape[1],self.new_shape[2]))  # itialize to zero mega array with sum of Probabilities
+        full_sum = torch.zeros((self.n_labels, self.new_shape[0], self.new_shape[1], self.new_shape[2]))
         k = 0  # iterator over all the patches
         for s in range(N_patches_s):
             for h in range(N_patches_h):
@@ -147,13 +156,13 @@ class Recompone_tool():
         return img
 
 
-def Test_Datasets(dataset_path, cut_param, resize_scale=1):
+def Test_Datasets(dataset_path, cut_param, resize_scale=1,n_labels=None):
     data_list = sorted(glob(os.path.join(dataset_path, 'data/*')))
     label_list = sorted(glob(os.path.join(dataset_path, 'label/*')))
     print("The number of test samples is: ", len(data_list))
     for datapath, labelpath in zip(data_list, label_list):
         print("\nStart Evaluate: ", datapath)
-        yield Img_DataSet(datapath, labelpath, cut_param,resize_scale=resize_scale), datapath.split('-')[-1]
+        yield Img_DataSet(datapath, labelpath, cut_param,resize_scale=resize_scale,n_labels=n_labels), datapath.split('-')[-1]
 
 # 测试代码
 import matplotlib.pyplot as plt
@@ -166,7 +175,7 @@ if __name__ == '__main__':
                  'stride_s': 24,
                  'stride_h': 96,
                  'stride_w': 96}
-    for dataset,file_idx in Test_Datasets(test_path, cut_param):
+    for dataset,file_idx in Test_Datasets(test_path, cut_param,n_labels=3):
         data_loader = DataLoader(dataset=dataset, batch_size=4, num_workers=0, shuffle=False)
         print(len(data_loader))
         with torch.no_grad():

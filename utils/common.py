@@ -12,15 +12,8 @@ def norm_img(image): # 归一化像素值到（0，1）之间，且将溢出值�
     image[image < 0] = 0.
     return image
 
-def sitk_read_raw(img_path): # 读取3D图像并resize
-    nda = sitk.ReadImage(img_path)
-    if nda is None:
-        raise TypeError("input img is None!!!")
-    nda = sitk.GetArrayFromImage(nda)  # channel first
-    return nda
-
 # target one-hot编码
-def to_one_hot_3d(tensor, n_classes=3):  # shape = [batch, s, h, w]
+def to_one_hot_3d(tensor, n_classes):  # shape = [batch, s, h, w]
     n, s, h, w = tensor.size()
     one_hot = torch.zeros(n, n_classes, s, h, w).scatter_(1, tensor.view(n, 1, s, h, w), 1)
     return one_hot

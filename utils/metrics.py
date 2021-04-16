@@ -24,7 +24,7 @@ class LossAverage(object):
 
 class DiceAverage(object):
     """Computes and stores the average and current value for calculate average loss"""
-    def __init__(self,class_num=3):
+    def __init__(self,class_num):
         self.class_num = class_num
         self.reset()
 
