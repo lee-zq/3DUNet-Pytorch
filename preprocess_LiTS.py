@@ -17,6 +17,8 @@ class LITS_preprocess:
         self.xy_down_scale = args.xy_down_scale
         self.slice_down_scale = args.slice_down_scale
 
+        self.valid_rate = 0.2
+
     def fix_data(self):
         if not os.path.exists(self.fixed_path):    # 创建保存目录
             os.makedirs(self.fixed_path+'data')
@@ -93,12 +95,9 @@ class LITS_preprocess:
         print('the fixed dataset total numbers of samples is :', data_num)
         random.shuffle(data_name_list)
 
-        train_rate = 0.8
-        val_rate = 0.2
-
-        assert val_rate+train_rate == 1.0
-        train_name_list = data_name_list[0:int(data_num*train_rate)]
-        val_name_list = data_name_list[int(data_num*train_rate):int(data_num*(train_rate + val_rate))]
+        assert self.valid_rate < 1.0
+        train_name_list = data_name_list[0:int(data_num*(1-self.valid_rate))]
+        val_name_list = data_name_list[int(data_num*(1-self.valid_rate)):int(data_num*((1-self.valid_rate) + self.valid_rate))]
 
         self.write_name_list(train_name_list, "train_name_list.txt")
         self.write_name_list(val_name_list, "val_name_list.txt")
