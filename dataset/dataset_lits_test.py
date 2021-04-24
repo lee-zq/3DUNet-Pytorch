@@ -9,18 +9,14 @@ import math
 import SimpleITK as sitk
 
 class Img_DataSet(Dataset):
-    def __init__(self, data_path, label_path, cut_param, n_labels):
+    def __init__(self, data_path, label_path, cut_param, args):
         self.label_path = label_path
         self.data_path = data_path
-        self.n_labels = n_labels
+        self.n_labels = args.n_labels
 
-        self.upper = 200
-        self.lower = -200
-        self.norm_factor = 200.0
-        self.expand_slice = 20  # 轴向外侧扩张的slice数量
-        self.size = 48  # 取样的slice数量
-        self.xy_down_scale = 0.5
-        self.slice_down_scale = 1
+        self.norm_factor = args.norm_factor
+        self.xy_down_scale = args.xy_down_scale
+        self.slice_down_scale = args,slice_down_scale
 
         # 读取一个data文件并归一化 shape:[s,h,w]
         self.ct = sitk.ReadImage(self.data_path,sitk.sitkInt16)
@@ -158,13 +154,13 @@ class Recompone_tool():
         return img
 
 
-def Test_Datasets(dataset_path, cut_param, n_labels):
+def Test_Datasets(dataset_path, cut_param, args):
     data_list = sorted(glob(os.path.join(dataset_path, 'data/*')))
     label_list = sorted(glob(os.path.join(dataset_path, 'label/*')))
     print("The number of test samples is: ", len(data_list))
     for datapath, labelpath in zip(data_list, label_list):
         print("\nStart Evaluate: ", datapath)
-        yield Img_DataSet(datapath, labelpath, cut_param,n_labels=n_labels), datapath.split('-')[-1]
+        yield Img_DataSet(datapath, labelpath, cut_param,args=args), datapath.split('-')[-1]
 
 # 测试代码
 import matplotlib.pyplot as plt

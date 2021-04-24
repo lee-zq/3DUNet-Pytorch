@@ -11,8 +11,9 @@ parser.add_argument('--seed', type=int, default=2021, help='random seed')
 parser.add_argument('--n_labels', type=int, default=2,help='number of classes') # 分割肝脏则置为2（二类分割），分割肝脏和肿瘤则置为3（三类分割）
 parser.add_argument('--upper', type=int, default=200, help='')
 parser.add_argument('--lower', type=int, default=200, help='')
+parser.add_argument('--norm_factor', type=float, default=200.0, help='')
 parser.add_argument('--expand_slice', type=int, default=20, help='')
-parser.add_argument('--min_slices', type=int, default=48, help='')
+parser.add_argument('--min_slices', type=int, dnorm_factorefault=48, help='')
 parser.add_argument('--xy_down_scale', type=int, default=0.5, help='')
 parser.add_argument('--slice_down_scale', type=int, default=1.0, help='')
 

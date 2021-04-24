@@ -16,7 +16,7 @@ from utils.common import load_file_name_list
 from utils.metrics import DiceAverage
 from collections import OrderedDict
 
-def test(model, img_dataset, n_labels):
+def test(model, img_dataset, args):
     dataloader = DataLoader(dataset=img_dataset, batch_size=1, num_workers=0, shuffle=False)
     model.eval()
     test_dice = DiceAverage(n_labels)
@@ -62,9 +62,9 @@ if __name__ == '__main__':
     
     cut_param = {'patch_s': 32, 'patch_h': 128, 'patch_w': 128,
             'stride_s': 16, 'stride_h': 64, 'stride_w': 64}
-    datasets = Test_Datasets(test_data_path,cut_param,n_labels=args.n_labels)
+    datasets = Test_Datasets(test_data_path,cut_param,args=args)
     for img_dataset,file_idx in datasets:
-        test_dice,pred_img = test(model, img_dataset, args.n_labels)
+        test_dice,pred_img = test(model, img_dataset, args)
         test_log.update(file_idx, test_dice)
         pred_img = sitk.GetImageFromArray(np.squeeze(np.array(pred_img.numpy(),dtype='uint8'),axis=0))
         sitk.WriteImage(pred_img, os.path.join(result_save_path, 'result-'+file_idx))
