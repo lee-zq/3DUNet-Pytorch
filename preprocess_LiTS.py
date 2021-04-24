@@ -17,7 +17,7 @@ class LITS_preprocess:
         self.xy_down_scale = args.xy_down_scale
         self.slice_down_scale = args.slice_down_scale
 
-        self.valid_rate = 0.2
+        self.valid_rate = args.valid_rate
 
     def fix_data(self):
         if not os.path.exists(self.fixed_path):    # 创建保存目录
