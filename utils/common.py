@@ -3,15 +3,6 @@ import numpy as np
 from scipy import ndimage
 import torch, random
 
-MIN_BOUND = -1000.0
-MAX_BOUND = 400.0
-
-def norm_img(image): # 归一化像素值到（0，1）之间，且将溢出值取边界值
-    image = (image - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
-    image[image > 1] = 1.
-    image[image < 0] = 0.
-    return image
-
 # target one-hot编码
 def to_one_hot_3d(tensor, n_classes):  # shape = [batch, s, h, w]
     n, s, h, w = tensor.size()

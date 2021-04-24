@@ -16,25 +16,25 @@ class Img_DataSet(Dataset):
 
         self.upper = 200
         self.lower = -200
+        self.norm_factor = 200.0
         self.expand_slice = 20  # 轴向外侧扩张的slice数量
         self.size = 48  # 取样的slice数量
-        self.x_down_scale = 0.5
-        self.y_down_scale = 0.5
-        self.slice_thickness = 1
+        self.xy_down_scale = 0.5
+        self.slice_down_scale = 1
 
         # 读取一个data文件并归一化 shape:[s,h,w]
         self.ct = sitk.ReadImage(self.data_path,sitk.sitkInt16)
         self.data_np = sitk.GetArrayFromImage(self.ct)
 
-        self.data_np = ndimage.zoom(self.data_np, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=3) # 双三次重采样
-        self.data_np = self.data_np/200.0
+        self.data_np = ndimage.zoom(self.data_np, (self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=3) # 双三次重采样
+        self.data_np = self.data_np/self.norm_factor
         self.ori_shape = self.data_np.shape
         # 读取一个label文件 shape:[s,h,w]
         self.seg = sitk.ReadImage(self.label_path,sitk.sitkInt8)
         self.label_np = sitk.GetArrayFromImage(self.seg)
         if self.n_labels==2:
             self.label_np[self.label_np > 0] = 1
-        self.label_np = ndimage.zoom(self.label_np, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=0) # 最近邻重采样
+        # self.label_np = ndimage.zoom(self.label_np, (self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=0) # 最近邻重采样
         # 扩展一定数量的slices，以保证卷积下采样合理运算
         self.cut_param = cut_param
 

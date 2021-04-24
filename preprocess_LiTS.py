@@ -3,19 +3,19 @@ import os
 import SimpleITK as sitk
 import random
 from scipy import ndimage
+import config
 
 class LITS_preprocess:
-    def __init__(self, raw_dataset_path,fixed_dataset_path, classes):
+    def __init__(self, raw_dataset_path,fixed_dataset_path, args):
         self.raw_root_path = raw_dataset_path
         self.fixed_path = fixed_dataset_path
-        self.classes = classes # 分割类别数（只分割肝脏，或者分割肝脏和肿瘤）
-        self.upper = 200
-        self.lower = -200
-        self.expand_slice = 20  # 轴向外侧扩张的slice数量
-        self.size = 48  # 取样的slice数量
-        self.x_down_scale = 0.5
-        self.y_down_scale = 0.5
-        self.slice_thickness = 1
+        self.classes = args.n_labels # 分割类别数（只分割肝脏为2，或者分割肝脏和肿瘤为3）
+        self.upper = args.upper
+        self.lower = args.lower
+        self.expand_slice = args.expand_slice  # 轴向外侧扩张的slice数量
+        self.size = args.min_slices  # 取样的slice数量
+        self.xy_down_scale = args.xy_down_scale
+        self.slice_down_scale = args.slice_down_scale
 
     def fix_data(self):
         if not os.path.exists(self.fixed_path):    # 创建保存目录
@@ -48,8 +48,8 @@ class LITS_preprocess:
         ct_array[ct_array < self.lower] = self.lower
 
         # 降采样，（只对x和y轴进行降采样，slice轴的spacing进行归一化）
-        ct_array = ndimage.zoom(ct_array, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=3)
-        seg_array = ndimage.zoom(seg_array, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=0)
+        ct_array = ndimage.zoom(ct_array, (self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=3)
+        seg_array = ndimage.zoom(seg_array, (self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=0)
         
         # 找到肝脏区域开始和结束的slice，并各向外扩张
         z = np.any(seg_array, axis=(1, 2))
@@ -79,12 +79,12 @@ class LITS_preprocess:
         new_ct = sitk.GetImageFromArray(ct_array)
         new_ct.SetDirection(ct.GetDirection())
         new_ct.SetOrigin(ct.GetOrigin())
-        new_ct.SetSpacing((ct.GetSpacing()[0] * int(1 / self.x_down_scale), ct.GetSpacing()[1] * int(1 / self.y_down_scale), self.slice_thickness))
+        new_ct.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
         
         new_seg = sitk.GetImageFromArray(seg_array)
         new_seg.SetDirection(ct.GetDirection())
         new_seg.SetOrigin(ct.GetOrigin())
-        new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.x_down_scale), ct.GetSpacing()[1] * int(1 / self.y_down_scale), self.slice_thickness))
+        new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
         return new_ct, new_seg
 
     def write_train_val_test_name_list(self):
@@ -112,7 +112,8 @@ class LITS_preprocess:
 if __name__ == '__main__':
     raw_dataset_path = '/ssd/lzq/dataset/LiTS/train/'
     fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits/'
-    classes = 2 # 分割肝脏则置为2（二类分割），分割肝脏和肿瘤则置为3（三类分割）
-    tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, classes)
+
+    args = config.args 
+    tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, args)
     tool.fix_data()                            # 对原始图像进行修剪并保存
     tool.write_train_val_test_name_list()      # 创建索引txt文件

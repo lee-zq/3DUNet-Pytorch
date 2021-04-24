@@ -38,7 +38,7 @@ Scipy
 ### 1) LITS2017 dataset preprocessing: 
 1. Download dataset from google drive: [Liver Tumor Segmentation Challenge.](https://drive.google.com/drive/folders/0B0vscETPGI1-Q1h1WFdEM2FHSUE)  
 Or from my share: https://pan.baidu.com/s/1WgP2Ttxn_CV-yRT4UyqHWw 
-Extraction code：hfl8 (The dataset consists of two parts: batch1 and batch2)  
+Extraction code：**hfl8** (The dataset consists of two parts: batch1 and batch2)  
 2. Then you need decompress and merge batch1 and batch2 into one folder. It is recommended to use 20 samples(27\~46) of the LiTS dataset as the testset
  and 111 samples(0\~26 and 47\~131) as the trainset. Please put the volume data and segmentation labels of trainset and testset into different local folders, 
 such as:  
@@ -69,7 +69,7 @@ raw_dataset:
     row_dataset_path = './raw_dataset/train/'  # path of origin dataset
     fixed_dataset_path = './fixed_data/'  # path of fixed(preprocessed) dataset
 ```   
-4. Run `./preprocess_LiTS.py`   
+4. Run `python ./preprocess_LiTS.py`   
 If nothing goes wrong, you can see the following files in the dir `./fixed_data`
 ```angular2
 │—— train_name_list.txt

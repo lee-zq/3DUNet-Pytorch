@@ -31,6 +31,8 @@ def test(model, img_dataset, n_labels):
             save_tool.add_result(output.detach().cpu())
 
     pred = save_tool.recompone_overlap()
+    pred = nn.functional.interpolate(x, scale_factor=(1//img_dataset.slice_down_scale,1//img_dataset.xy_down_scale,1//img_dataset.xy_down_scale), \
+                                     mode='trilinear', align_corners=False) # 空间分辨率恢复到原始size
     pred = torch.unsqueeze(pred,dim=0)
 
     test_dice.update(pred, target)
@@ -64,6 +66,5 @@ if __name__ == '__main__':
     for img_dataset,file_idx in datasets:
         test_dice,pred_img = test(model, img_dataset, args.n_labels)
         test_log.update(file_idx, test_dice)
-        # pred_img=ndimage.zoom(pred_img,1/args.resize_scale,order=0) #rescale
         pred_img = sitk.GetImageFromArray(np.squeeze(np.array(pred_img.numpy(),dtype='uint8'),axis=0))
         sitk.WriteImage(pred_img, os.path.join(result_save_path, 'result-'+file_idx))

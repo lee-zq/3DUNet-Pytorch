@@ -79,7 +79,7 @@ if __name__ == '__main__':
     # model = nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
     
     # loss=loss.DiceLoss(weight=np.array([0.2,0.3,0.5]))
-    loss=loss.DiceLoss(weight=np.array([0.3,0.7]))
+    loss=loss.DiceLoss(weight=np.array([0.2,0.8]))
     
     log = logger.Train_Logger(save_path,"train_log")
 
