@@ -9,10 +9,10 @@ import math
 import SimpleITK as sitk
 
 class Img_DataSet(Dataset):
-    def __init__(self, data_path, label_path, cut_param, resize_scale=1):
-        self.resize_scale = resize_scale
+    def __init__(self, data_path, label_path, cut_param, n_labels):
         self.label_path = label_path
         self.data_path = data_path
+        self.n_labels = n_labels
 
         self.upper = 200
         self.lower = -200
@@ -32,6 +32,8 @@ class Img_DataSet(Dataset):
         # 读取一个label文件 shape:[s,h,w]
         self.seg = sitk.ReadImage(self.label_path,sitk.sitkInt8)
         self.label_np = sitk.GetArrayFromImage(self.seg)
+        if self.n_labels==2:
+            self.label_np[self.label_np > 0] = 1
         self.label_np = ndimage.zoom(self.label_np, (self.slice_thickness, self.y_down_scale, self.x_down_scale), order=0) # 最近邻重采样
         # 扩展一定数量的slices，以保证卷积下采样合理运算
         self.cut_param = cut_param
@@ -156,13 +158,13 @@ class Recompone_tool():
         return img
 
 
-def Test_Datasets(dataset_path, cut_param, resize_scale=1,n_labels=None):
+def Test_Datasets(dataset_path, cut_param, n_labels):
     data_list = sorted(glob(os.path.join(dataset_path, 'data/*')))
     label_list = sorted(glob(os.path.join(dataset_path, 'label/*')))
     print("The number of test samples is: ", len(data_list))
     for datapath, labelpath in zip(data_list, label_list):
         print("\nStart Evaluate: ", datapath)
-        yield Img_DataSet(datapath, labelpath, cut_param,resize_scale=resize_scale,n_labels=n_labels), datapath.split('-')[-1]
+        yield Img_DataSet(datapath, labelpath, cut_param,n_labels=n_labels), datapath.split('-')[-1]
 
 # 测试代码
 import matplotlib.pyplot as plt

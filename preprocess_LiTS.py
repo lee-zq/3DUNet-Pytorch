@@ -111,7 +111,7 @@ class LITS_preprocess:
 
 if __name__ == '__main__':
     raw_dataset_path = '/ssd/lzq/dataset/LiTS/train/'
-    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits2/'
+    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits/'
     classes = 2 # 分割肝脏则置为2（二类分割），分割肝脏和肿瘤则置为3（三类分割）
     tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, classes)
     tool.fix_data()                            # 对原始图像进行修剪并保存

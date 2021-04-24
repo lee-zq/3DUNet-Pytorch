@@ -15,86 +15,86 @@ Scipy
 ```
 ### Code Structure
 ```angular2
-├── config.py        # Configuration information for training and testing
 ├── dataset          # Training and testing dataset
-│   ├── dataset_lits_faster.py 
-│   ├── dataset_lits.py
-│   └── test_dataset.py
+│   ├── dataset_lits_train.py 
+│   └── dataset_lits_test.py 
 ├── models           # Model design
 │   ├── nn
-│   └── Unet.py
+│   │   └── module.py
+│   └── Unet.py      # 3DUNet class
 ├── output           # Trained model
-├── preprocess
-│   └── preprocess_LiTS.py
+|── utils            # Some related tools
+|   ├── common.py
+|   ├── weights_init.py
+|   ├── logger.py
+|   ├── metrics.py
+|   └── loss.py
+├── preprocess_LiTS.py  # preprocessing for  raw data
 ├── test.py          # Test code
-├── train_faster.py  # Quick training code
 ├── train.py         # Standard training code
-└── utils            # Some related tools
-    ├── common.py
-    ├── init_util.py
-    ├── logger.py
-    ├── metrics.py
+└── config.py        # Configuration information for training and testing
 ```
 ## Quickly Start
 ### 1) LITS2017 dataset preprocessing: 
 1. Download dataset from google drive: [Liver Tumor Segmentation Challenge.](https://drive.google.com/drive/folders/0B0vscETPGI1-Q1h1WFdEM2FHSUE)  
 Or from my share: https://pan.baidu.com/s/1WgP2Ttxn_CV-yRT4UyqHWw 
-Extraction code：hfl8   
-2. Then you need decompress the dataset. It is recommended to use batch1(0\~27) of the LiTS dataset as the testset
- and batch2(28\~130) as the trainset. Please put the volume data and segmentation labels of trainset and testset into different local folders, 
+Extraction code：hfl8 (The dataset consists of two parts: batch1 and batch2)  
+2. Then you need decompress and merge batch1 and batch2 into one folder. It is recommended to use 20 samples(27\~46) of the LiTS dataset as the testset
+ and 111 samples(0\~26 and 47\~131) as the trainset. Please put the volume data and segmentation labels of trainset and testset into different local folders, 
 such as:  
 ```
 raw_dataset:
-    ├── LiTS_batch1  # (0~27)
+    ├── test  # 20 samples(27~46) 
+    │   ├── data
+    │   │   ├── volume-27.nii
+    │   │   ├── volume-28.nii
+    |   |   |—— ...
+    │   └── label
+    │       ├── segmentation-27.nii
+    │       ├── segmentation-28.nii
+    |       |—— ...
+    │       
+    ├── train # 111 samples(0\~26 and 47\~131)
     │   ├── data
     │   │   ├── volume-0.nii
-    │   │   ├── volume-10.nii ...
+    │   │   ├── volume-1.nii
+    |   |   |—— ...
     │   └── label
     │       ├── segmentation-0.nii
-    │       ├── segmentation-10.nii ...
-    │       
-    ├── LiTS_batch2 # (28~130)
-    │   ├── data
-    │   │   ├── volume-28.nii
-    │   │   ├── volume-29.nii ...
-    │   └── label
-    │       ├── segmentation-28.nii
-    │       ├── segmentation-29.nii ...
+    │       ├── segmentation-1.nii
+    |       |—— ...
 ```
-3. Finally, you need to change the root path of the volume data and segmentation labels in `preprocess/preprocess_LiTS.py`, such as:
+3. Finally, you need to change the root path of the volume data and segmentation labels in `./preprocess_LiTS.py`, such as:
 ```
-    row_dataset_path = './raw_dataset/LiTS_batch2/'  # path of origin dataset
+    row_dataset_path = './raw_dataset/train/'  # path of origin dataset
     fixed_dataset_path = './fixed_data/'  # path of fixed(preprocessed) dataset
 ```   
-4. Run `python preprocess/preprocess_LiTS.py`   
+4. Run `./preprocess_LiTS.py`   
 If nothing goes wrong, you can see the following files in the dir `./fixed_data`
 ```angular2
-│  train_name_list.txt
-│  val_name_list.txt
+│—— train_name_list.txt
+│—— val_name_list.txt
 │
-├─data
-│      volume-28.nii
-│      volume-29.nii
-│      volume-30.nii
-│      ...
-└─label
-        segmentation-28.nii
-        segmentation-29.nii
-        segmentation-30.nii
+|—— data
+│       volume-0.nii
+│       volume-1.nii
+│       volume-2.nii
+│       ...
+└─ label
+        segmentation-0.nii
+        segmentation-1.nii
+        segmentation-2.nii
         ...
 ```  
+---
 ### 2) Training 3DUNet
 1. Firstly, you should change the some parameters in `config.py`,especially, please set `--dataset_path` to `./fixed_data`  
 All parameters are commented in the file `config.py`. 
 2. Secondely,run `python train.py --save model_name`  
 3. Besides, you can observe the dice and loss during the training process 
 in the browser through `tensorboard --logdir ./output/model_name`. 
----
-In addition, during the training process you will 
-find that loading train data is time-consuming, 
-you can use `train_faster.py` to train model. `train_faster.py` calls `./dataset/dataset_lits_faster.py`,
- which will crop multiple training samples from an input sample to form a batch for quickly training.    
-### 3) Testing  
+---   
+### 3) Testing 3DUNet
 run `test.py`  
 Please pay attention to path of trained model and cut parameters in `test.py`.   
 (Since the calculation of the 3D convolution operation is too large,

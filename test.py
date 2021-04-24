@@ -47,7 +47,7 @@ if __name__ == '__main__':
     args = config.args
     device = torch.device('cpu' if args.cpu else 'cuda')
     # model info
-    model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=3).to(device)
+    model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=args.n_labels).to(device)
     ckpt = torch.load('./output/{}/best_model.pth'.format(args.save))
     model.load_state_dict(ckpt['net'])
 
@@ -59,8 +59,8 @@ if __name__ == '__main__':
         os.mkdir(result_save_path)
     
     cut_param = {'patch_s': 32, 'patch_h': 128, 'patch_w': 128,
-                 'stride_s': 24, 'stride_h': 64, 'stride_w': 64}
-    datasets = Test_Datasets(test_data_path,cut_param,resize_scale=args.test_resize_scale)
+            'stride_s': 16, 'stride_h': 64, 'stride_w': 64}
+    datasets = Test_Datasets(test_data_path,cut_param,n_labels=args.n_labels)
     for img_dataset,file_idx in datasets:
         test_dice,pred_img = test(model, img_dataset, args.n_labels)
         test_log.update(file_idx, test_dice)
