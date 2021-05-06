@@ -16,7 +16,7 @@ class Img_DataSet(Dataset):
 
         self.norm_factor = args.norm_factor
         self.xy_down_scale = args.xy_down_scale
-        self.slice_down_scale = args,slice_down_scale
+        self.slice_down_scale = args.slice_down_scale
 
         # 读取一个data文件并归一化 shape:[s,h,w]
         self.ct = sitk.ReadImage(self.data_path,sitk.sitkInt16)

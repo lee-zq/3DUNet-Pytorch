@@ -81,12 +81,12 @@ class LITS_preprocess:
         new_ct = sitk.GetImageFromArray(ct_array)
         new_ct.SetDirection(ct.GetDirection())
         new_ct.SetOrigin(ct.GetOrigin())
-        new_ct.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
+        new_ct.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * self.slice_down_scale))
         
         new_seg = sitk.GetImageFromArray(seg_array)
         new_seg.SetDirection(ct.GetDirection())
         new_seg.SetOrigin(ct.GetOrigin())
-        new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
+        new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * self.slice_down_scale))
         return new_ct, new_seg
 
     def write_train_val_test_name_list(self):

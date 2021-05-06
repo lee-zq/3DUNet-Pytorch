@@ -15,14 +15,15 @@ from models.UNet import UNet3D
 from utils.common import load_file_name_list
 from utils.metrics import DiceAverage
 from collections import OrderedDict
+import torch.nn as nn
 
 def test(model, img_dataset, args):
     dataloader = DataLoader(dataset=img_dataset, batch_size=1, num_workers=0, shuffle=False)
     model.eval()
-    test_dice = DiceAverage(n_labels)
-    save_tool = Recompone_tool(img_dataset.ori_shape, img_dataset.new_shape, n_labels, img_dataset.cut_param)
+    test_dice = DiceAverage(args.n_labels)
+    save_tool = Recompone_tool(img_dataset.ori_shape, img_dataset.new_shape, args.n_labels, img_dataset.cut_param)
     target = torch.from_numpy(np.expand_dims(img_dataset.label_np,axis=0)).long()
-    target = to_one_hot_3d(target, n_labels)
+    target = to_one_hot_3d(target, args.n_labels)
     with torch.no_grad():
         for data in tqdm(dataloader,total=len(dataloader)):
             data = data.unsqueeze(1)
@@ -31,12 +32,12 @@ def test(model, img_dataset, args):
             save_tool.add_result(output.detach().cpu())
 
     pred = save_tool.recompone_overlap()
-    pred = nn.functional.interpolate(x, scale_factor=(1//img_dataset.slice_down_scale,1//img_dataset.xy_down_scale,1//img_dataset.xy_down_scale), \
-                                     mode='trilinear', align_corners=False) # 空间分辨率恢复到原始size
     pred = torch.unsqueeze(pred,dim=0)
-
+    pred = nn.functional.interpolate(pred, scale_factor=(1//img_dataset.slice_down_scale,1//img_dataset.xy_down_scale,1//img_dataset.xy_down_scale), \
+                                     mode='trilinear', align_corners=False) # 空间分辨率恢复到原始size
+    
     test_dice.update(pred, target)
-    if n_labels==2:
+    if args.n_labels==2:
         test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1]})
     else:
         test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1],'Test dice2': test_dice.avg[2]})
