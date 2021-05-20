@@ -22,8 +22,8 @@ parser.add_argument('--dataset_path',default = '/ssd/lzq/dataset/fixed_lits',hel
 parser.add_argument('--save',default='model2class',help='save path of trained model')
 parser.add_argument('--train_resize_scale', type=float, default=1.0,help='resize scale for input data')
 parser.add_argument('--test_resize_scale', type=float, default=1.0,help='resize scale for input data')
-parser.add_argument('--crop_size', type=list, default=[32, 144, 144],help='patch size of train samples after resize')
-parser.add_argument('--batch_size', type=list, default=4,help='batch size of trainset')
+parser.add_argument('--crop_size', type=list, default=[48, 256, 256],help='patch size of train samples after resize')
+parser.add_argument('--batch_size', type=list, default=2,help='batch size of trainset')
 
 # train
 parser.add_argument('--epochs', type=int, default=200, metavar='N',help='number of epochs to train (default: 10)')

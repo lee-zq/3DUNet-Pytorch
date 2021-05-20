@@ -27,7 +27,7 @@ class LITS_preprocess:
         Numbers = len(file_list)
         print('Total numbers of samples is :',Numbers)
         for ct_file,i in zip(file_list,range(Numbers)):
-            print(ct_file," | {}/{}".format(i+1,Numbers))
+            print("==== {} | {}/{} ====".format(ct_file, i+1,Numbers))
             ct_path = os.path.join(self.raw_root_path + 'data/', ct_file)
             seg_path = os.path.join(self.raw_root_path + 'label/', ct_file.replace('volume', 'segmentation'))
             new_ct, new_seg = self.process(ct_path, seg_path, classes = self.classes)
@@ -49,9 +49,9 @@ class LITS_preprocess:
         ct_array[ct_array > self.upper] = self.upper
         ct_array[ct_array < self.lower] = self.lower
 
-        # 降采样，（只对x和y轴进行降采样，slice轴的spacing进行归一化）
-        ct_array = ndimage.zoom(ct_array, (self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=3)
-        seg_array = ndimage.zoom(seg_array, (self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=0)
+        # 降采样，（对x和y轴进行降采样，slice轴的spacing归一化到slice_down_scale）
+        ct_array = ndimage.zoom(ct_array, (ct.GetSpacing()[-1] / self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=3)
+        seg_array = ndimage.zoom(seg_array, (ct.GetSpacing()[-1] / self.slice_down_scale, self.xy_down_scale, self.xy_down_scale), order=0)
         
         # 找到肝脏区域开始和结束的slice，并各向外扩张
         z = np.any(seg_array, axis=(1, 2))
@@ -71,7 +71,7 @@ class LITS_preprocess:
         print("Cut out range:",str(start_slice) + '--' + str(end_slice))
         # 如果这时候剩下的slice数量不足size，直接放弃，这样的数据很少
         if end_slice - start_slice + 1 < self.size:
-            print(ct_file, 'too little slice，give up the sample')
+            print('Too little slice，give up the sample:', ct_file)
             return None,None
         # 截取保留区域
         ct_array = ct_array[start_slice:end_slice + 1, :, :]
@@ -81,12 +81,12 @@ class LITS_preprocess:
         new_ct = sitk.GetImageFromArray(ct_array)
         new_ct.SetDirection(ct.GetDirection())
         new_ct.SetOrigin(ct.GetOrigin())
-        new_ct.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * self.slice_down_scale))
+        new_ct.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
         
         new_seg = sitk.GetImageFromArray(seg_array)
         new_seg.SetDirection(ct.GetDirection())
         new_seg.SetOrigin(ct.GetOrigin())
-        new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * self.slice_down_scale))
+        new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
         return new_ct, new_seg
 
     def write_train_val_test_name_list(self):
@@ -110,7 +110,7 @@ class LITS_preprocess:
 
 if __name__ == '__main__':
     raw_dataset_path = '/ssd/lzq/dataset/LiTS/train/'
-    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits/'
+    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits3/'
 
     args = config.args 
     tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, args)
