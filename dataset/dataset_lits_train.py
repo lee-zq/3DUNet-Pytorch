@@ -59,7 +59,7 @@ class Train_Dataset(dataset):
 if __name__ == "__main__":
     sys.path.append('/ssd/lzq/3DUNet')
     from config import args
-    train_ds = Dataset(args, mode='train')
+    train_ds = Train_Dataset(args)
 
     # 定义数据加载
     train_dl = DataLoader(train_ds, 2, False, num_workers=1)
