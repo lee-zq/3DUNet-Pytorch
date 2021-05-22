@@ -29,17 +29,17 @@ class DiceAverage(object):
         self.reset()
 
     def reset(self):
-        self.val = np.asarray([0]*self.class_num, dtype='float64')
+        self.value = np.asarray([0]*self.class_num, dtype='float64')
         self.avg = np.asarray([0]*self.class_num, dtype='float64')
         self.sum = np.asarray([0]*self.class_num, dtype='float64')
         self.count = 0
 
     def update(self, logits, targets):
-        self.val = DiceAverage.get_dices(logits, targets)
-        self.sum += self.val
+        self.value = DiceAverage.get_dices(logits, targets)
+        self.sum += self.value
         self.count += 1
         self.avg = np.around(self.sum / self.count, 4)
-        # print(self.val)
+        # print(self.value)
 
     @staticmethod
     def get_dices(logits, targets):

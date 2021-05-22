@@ -1,4 +1,5 @@
 from dataset.dataset_lits_train import Lits_DataSet
+from dataset.dataset import Dataset
 from torch.utils.data import DataLoader
 import torch
 import torch.optim as optim
@@ -25,15 +26,14 @@ def val(model, val_loader, criterion, n_labels):
             loss=criterion(output, target)
             
             val_loss.update(loss.item(),data.size(0))
-            val_dice.update(output, target)
+            # val_dice.update(output, target)
     if n_labels == 2:
-        return OrderedDict({'Val Loss': val_loss.avg, 'Val dice0': val_dice.avg[0],
-                        'Val dice1': val_dice.avg[1]})
+        return OrderedDict({'Val Loss': val_loss.avg})
     else:
         return OrderedDict({'Val Loss': val_loss.avg, 'Val dice0': val_dice.avg[0],
                         'Val dice1': val_dice.avg[1],'Val dice2': val_dice.avg[2]})
 
-def train(model, train_loader, optimizer, criterion, n_labels):
+def train(model, train_loader, optimizer, criterion, n_labels, alpha):
     print("=======Epoch:{}=======lr:{}".format(epoch,optimizer.state_dict()['param_groups'][0]['lr']))
     model.train()
     train_loss = metrics.LossAverage()
@@ -44,8 +44,13 @@ def train(model, train_loader, optimizer, criterion, n_labels):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
 
-        output = model(data)[-1]
-        loss = criterion(output, target)
+        output = model(data)
+        loss0 = criterion(output[0], target)
+        loss1 = criterion(output[1], target)
+        loss2 = criterion(output[2], target)
+        loss3 = criterion(output[3], target)
+
+        loss = loss3  +  alpha * (loss0 + loss1 + loss2)
         loss.backward()
         optimizer.step()
         
@@ -59,10 +64,9 @@ if __name__ == '__main__':
     if not os.path.exists(save_path): os.mkdir(save_path)
     device = torch.device('cpu' if args.cpu else 'cuda')
     # data info
-    train_set = Lits_DataSet(args.crop_size, args.train_resize_scale, args.dataset_path, mode='train')
-    val_set = Lits_DataSet(args.crop_size, args.train_resize_scale, args.dataset_path, mode='val')
-    # train_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.train_resize_scale, args.dataset_path, mode='train')
-    # val_set = dataset_lits_faster.Lits_DataSet(args.crop_size, args.batch_size, args.train_resize_scale, args.dataset_path, mode='val')
+    train_set = Dataset(args, mode='train')
+    val_set = Dataset(args, mode='val')
+
     train_loader = DataLoader(dataset=train_set,batch_size=args.batch_size,num_workers=args.n_threads, shuffle=True)
     val_loader = DataLoader(dataset=val_set,batch_size=1,num_workers=args.n_threads, shuffle=False)
 
@@ -74,15 +78,18 @@ if __name__ == '__main__':
     common.print_network(model)
     model = torch.nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
     
-    loss=loss.DiceLoss(weight=np.array([0.2,0.8])) if args.n_labels==2 else loss.DiceLoss(weight=np.array([0.2,0.3,0.5]))
-    
+    # loss=loss.DiceLoss(weight=np.array([0.2,0.8])) if args.n_labels==2 else loss.DiceLoss(weight=np.array([0.2,0.3,0.5]))
+    from loss import Dice
+    loss = Dice.DiceLossV2()
+
     log = logger.Train_Logger(save_path,"train_log")
 
     best = [0,np.inf] # 初始化最优模型的epoch和performance
     trigger = 0  # early stop 计数器
+    alpha = 0.5
     for epoch in range(1, args.epochs + 1):
         common.adjust_learning_rate(optimizer, epoch, args)
-        train_log = train(model, train_loader, optimizer, loss, args.n_labels)
+        train_log = train(model, train_loader, optimizer, loss, args.n_labels, alpha)
         val_log = val(model, val_loader, loss, args.n_labels)
         log.update(epoch,train_log,val_log)
 
@@ -97,6 +104,10 @@ if __name__ == '__main__':
             best[1] = val_log['Val Loss']
             trigger = 0
         print('Best performance at Epoch: {} | {}'.format(best[0],best[1]))
+
+        # 深监督系数衰减
+        if epoch % 10 == 0: alpha *= 0.8
+
         # early stopping
         if args.early_stop is not None:
             if trigger >= args.early_stop:

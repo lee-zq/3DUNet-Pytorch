@@ -3,6 +3,7 @@ import os
 import SimpleITK as sitk
 import random
 from scipy import ndimage
+from os.path import join
 import config
 
 class LITS_preprocess:
@@ -21,19 +22,19 @@ class LITS_preprocess:
 
     def fix_data(self):
         if not os.path.exists(self.fixed_path):    # 创建保存目录
-            os.makedirs(self.fixed_path+'data')
-            os.makedirs(self.fixed_path+'label')
-        file_list = os.listdir(self.raw_root_path + 'data/')
+            os.makedirs(join(self.fixed_path,'ct'))
+            os.makedirs(join(self.fixed_path, 'label'))
+        file_list = os.listdir(join(self.raw_root_path,'ct'))
         Numbers = len(file_list)
         print('Total numbers of samples is :',Numbers)
         for ct_file,i in zip(file_list,range(Numbers)):
             print("==== {} | {}/{} ====".format(ct_file, i+1,Numbers))
-            ct_path = os.path.join(self.raw_root_path + 'data/', ct_file)
-            seg_path = os.path.join(self.raw_root_path + 'label/', ct_file.replace('volume', 'segmentation'))
+            ct_path = os.path.join(self.raw_root_path, 'ct', ct_file)
+            seg_path = os.path.join(self.raw_root_path, 'label', ct_file.replace('volume', 'segmentation'))
             new_ct, new_seg = self.process(ct_path, seg_path, classes = self.classes)
             if new_ct != None and new_seg != None:
-                sitk.WriteImage(new_ct, os.path.join(self.fixed_path + 'data/', ct_file))  
-                sitk.WriteImage(new_seg, os.path.join(self.fixed_path + 'label/', ct_file.replace('volume', 'segmentation').replace('.nii', '.nii.gz')))
+                sitk.WriteImage(new_ct, os.path.join(self.fixed_path, 'ct', ct_file))  
+                sitk.WriteImage(new_seg, os.path.join(self.fixed_path, 'label', ct_file.replace('volume', 'segmentation').replace('.nii', '.nii.gz')))
 
     def process(self, ct_path, seg_path, classes=None):
         ct = sitk.ReadImage(ct_path, sitk.sitkInt16)
@@ -89,8 +90,8 @@ class LITS_preprocess:
         new_seg.SetSpacing((ct.GetSpacing()[0] * int(1 / self.xy_down_scale), ct.GetSpacing()[1] * int(1 / self.xy_down_scale), self.slice_down_scale))
         return new_ct, new_seg
 
-    def write_train_val_test_name_list(self):
-        data_name_list = os.listdir(self.fixed_path + "/" + "data")
+    def write_train_val_name_list(self):
+        data_name_list = os.listdir(join(self.fixed_path, "ct"))
         data_num = len(data_name_list)
         print('the fixed dataset total numbers of samples is :', data_num)
         random.shuffle(data_name_list)
@@ -99,20 +100,23 @@ class LITS_preprocess:
         train_name_list = data_name_list[0:int(data_num*(1-self.valid_rate))]
         val_name_list = data_name_list[int(data_num*(1-self.valid_rate)):int(data_num*((1-self.valid_rate) + self.valid_rate))]
 
-        self.write_name_list(train_name_list, "train_name_list.txt")
-        self.write_name_list(val_name_list, "val_name_list.txt")
+        self.write_name_list(train_name_list, "train_path_list.txt")
+        self.write_name_list(val_name_list, "val_path_list.txt")
+
 
     def write_name_list(self, name_list, file_name):
-        f = open(self.fixed_path + file_name, 'w')
-        for i in range(len(name_list)):
-            f.write(str(name_list[i]) + "\n")
+        f = open(join(self.fixed_path, file_name), 'w')
+        for name in name_list:
+            ct_path = os.path.join(self.fixed_path, 'ct', name)
+            seg_path = os.path.join(self.fixed_path, 'label', name.replace('volume', 'segmentation'))
+            f.write(ct_path + ' ' + seg_path + "\n")
         f.close()
 
 if __name__ == '__main__':
-    raw_dataset_path = '/ssd/lzq/dataset/LiTS/train/'
-    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits3/'
+    raw_dataset_path = '/ssd/lzq/dataset/LiTS/train'
+    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits5'
 
     args = config.args 
     tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, args)
     tool.fix_data()                            # 对原始图像进行修剪并保存
-    tool.write_train_val_test_name_list()      # 创建索引txt文件
+    tool.write_train_val_name_list()      # 创建索引txt文件
