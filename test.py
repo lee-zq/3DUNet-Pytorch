@@ -48,18 +48,19 @@ def predict_one_img(model, img_dataset, args):
 
 if __name__ == '__main__':
     args = config.args
+    save_path = os.path.join('./experiments', args.save)
     device = torch.device('cpu' if args.cpu else 'cuda')
     # model info
     # model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=args.n_labels).to(device)
     model = ResUNet(training=False).to(device)
     model = torch.nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
-    ckpt = torch.load('./output/{}/best_model.pth'.format(args.save))
+    ckpt = torch.load('{}/best_model.pth'.format(save_path))
     model.load_state_dict(ckpt['net'])
 
-    test_log = logger.Test_Logger('./output/{}'.format(args.save),"test_log")
+    test_log = logger.Test_Logger(save_path,"test_log")
     # data info
     test_data_path = '/ssd/lzq/dataset/LiTS/test'
-    result_save_path = './output/{}/result'.format(args.save)
+    result_save_path = '{}/result'.format(save_path)
     if not os.path.exists(result_save_path):
         os.mkdir(result_save_path)
     

@@ -1,5 +1,5 @@
 from torch.nn import init
-
+from torch import nn
 
 def weights_init_normal(m):
     classname = m.__class__.__name__
@@ -61,3 +61,8 @@ def init_weights(net, init_type='normal'):
         net.apply(weights_init_orthogonal)
     else:
         raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
+
+def init_model(net):
+    if isinstance(net, nn.Conv3d) or isinstance(net, nn.ConvTranspose3d):
+        nn.init.kaiming_normal_(net.weight.data, 0.25)
+        nn.init.constant_(net.bias.data, 0)

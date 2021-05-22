@@ -1,0 +1,26 @@
+
+
+# Preprocess parameters
+n_labels: 2
+upper: 200
+lower: -200
+norm_factor: 200.0
+expand_slice: 20
+min_slices: 48
+xy_down_scale: 0.5
+slice_down_scale: 1.0
+valid_rate: 0.2
+# data
+dataset_path: '/ssd/lzq/dataset/fixed_lits5'
+
+crop_slices: 48
+batch_size: 2
+
+# train
+epochs: 200
+lr: 0.0001
+early-stop: 100
+
+# test
+test_cut_size: 48
+test_cut_stride: 24

@@ -103,19 +103,22 @@ class RandomRotate:
 
 
 class Center_Crop:
-    def __init__(self, base=16):
-        self.base = base
-    
+    def __init__(self, base, max_size):
+        self.base = base  # base默认取16，因为4次下采样后为1
+        self.max_size = max_size 
+        if self.max_size%self.base:
+            self.max_size = self.max_size - self.max_size%self.base # max_size为限制最大采样slices数，防止显存溢出，同时也应为16的倍数
     def __call__(self, img , label):
         if img.size(1) < self.base:
             return None
         slice_num = img.size(1) - img.size(1) % self.base
-        slice_num = 3 * self.base
-        left_x = img.size(1)//2 - slice_num//2
-        right_x =  img.size(1)//2 + slice_num//2
+        slice_num = min(self.max_size, slice_num)
 
-        crop_img = img[:,left_x:right_x]
-        crop_label = label[:,left_x:right_x]
+        left = img.size(1)//2 - slice_num//2
+        right =  img.size(1)//2 + slice_num//2
+
+        crop_img = img[:,left:right]
+        crop_label = label[:,left:right]
         return crop_img, crop_label
 
 class ToTensor:

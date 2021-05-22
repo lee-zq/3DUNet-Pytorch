@@ -11,20 +11,14 @@ from torch.utils.data import Dataset as dataset
 from .transforms import RandomCrop, RandomFlip_LR, RandomFlip_UD, Center_Crop, Compose, Resize
 from .tools import load_file_name_list, padding_img, extract_ordered_overlap
 
-class Train_Dataset(dataset):
+class Val_Dataset(dataset):
     def __init__(self, args):
 
         self.args = args
+        self.filename_list = load_file_name_list(os.path.join(args.dataset_path, 'val_path_list.txt'))
 
-        self.filename_list = load_file_name_list(os.path.join(args.dataset_path, 'train_path_list.txt'))
-
-        self.transforms = Compose([
-                RandomCrop(self.args.crop_slices),
-                # RandomFlip_LR(prob=0.5),
-                # RandomFlip_UD(prob=0.5),
-                # RandomRotate()
-            ])
-
+        self.transforms = Compose([Center_Crop(base=16, max_slice=96)]) 
+        
     def __getitem__(self, index):
 
         ct = sitk.ReadImage(self.filename_list[index][0], sitk.sitkInt16)
@@ -40,7 +34,7 @@ class Train_Dataset(dataset):
         seg_array = torch.FloatTensor(seg_array).unsqueeze(0)
 
         if self.transforms:
-            ct_array,seg_array = self.transforms(ct_array, seg_array)     
+            ct_array, seg_array = self.transforms(ct_array, seg_array)
 
         return ct_array, seg_array.squeeze(0)
 

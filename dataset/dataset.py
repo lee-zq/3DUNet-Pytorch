@@ -9,6 +9,7 @@ import SimpleITK as sitk
 import torch
 from torch.utils.data import Dataset as dataset
 from .transforms import RandomCrop, RandomFlip_LR, RandomFlip_UD, Center_Crop, Compose, Resize
+from .tools import load_file_name_list, padding_img, extract_ordered_overlap
 
 class Dataset(dataset):
     def __init__(self, args, mode='train'):
@@ -17,9 +18,9 @@ class Dataset(dataset):
         self.mode = mode
         
         if self.mode=='train':
-            self.filename_list = self.load_file_name_list(os.path.join(args.dataset_path, 'train_path_list.txt'))
+            self.filename_list = load_file_name_list(os.path.join(args.dataset_path, 'train_path_list.txt'))
         elif self.mode =='val':
-            self.filename_list = self.load_file_name_list(os.path.join(args.dataset_path, 'val_path_list.txt'))
+            self.filename_list = load_file_name_list(os.path.join(args.dataset_path, 'val_path_list.txt'))
         else:
             raise TypeError('Dataset mode error!!! ')
 
@@ -54,16 +55,6 @@ class Dataset(dataset):
             raise ValueError("Dataset Mode Error")
         # print(ct_array.shape, seg_array.shape)
         return ct_array, seg_array.squeeze(0)
-    
-    def load_file_name_list(self, file_path):
-        file_name_list = []
-        with open(file_path, 'r') as file_to_read:
-            while True:
-                lines = file_to_read.readline().strip()  # 整行读取数据
-                if not lines:
-                    break
-                file_name_list.append(lines.split())
-        return file_name_list
 
     def __len__(self):
         return len(self.filename_list)

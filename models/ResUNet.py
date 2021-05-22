@@ -142,7 +142,7 @@ class ResUNet(nn.Module):
         # 最后大尺度下的映射（256*256），下面的尺度依次递减
         self.map4 = nn.Sequential(
             nn.Conv3d(32, 2, 1, 1),
-            nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear'),
+            nn.Upsample(scale_factor=(1, 2, 2), mode='trilinear', align_corners=False),
             # nn.Sigmoid()
             nn.Softmax(dim=1)
         )
@@ -150,7 +150,7 @@ class ResUNet(nn.Module):
         # 128*128 尺度下的映射
         self.map3 = nn.Sequential(
             nn.Conv3d(64, 2, 1, 1),
-            nn.Upsample(scale_factor=(2, 4, 4), mode='trilinear'),
+            nn.Upsample(scale_factor=(2, 4, 4), mode='trilinear', align_corners=False),
             # nn.Sigmoid()
             nn.Softmax(dim=1)
         )
@@ -158,7 +158,7 @@ class ResUNet(nn.Module):
         # 64*64 尺度下的映射
         self.map2 = nn.Sequential(
             nn.Conv3d(128, 2, 1, 1),
-            nn.Upsample(scale_factor=(4, 8, 8), mode='trilinear'),
+            nn.Upsample(scale_factor=(4, 8, 8), mode='trilinear', align_corners=False),
             # nn.Sigmoid()
             nn.Softmax(dim=1)
         )
@@ -166,7 +166,7 @@ class ResUNet(nn.Module):
         # 32*32 尺度下的映射
         self.map1 = nn.Sequential(
             nn.Conv3d(256, 2, 1, 1),
-            nn.Upsample(scale_factor=(8, 16, 16), mode='trilinear'),
+            nn.Upsample(scale_factor=(8, 16, 16), mode='trilinear', align_corners=False),
             nn.Softmax(dim=1)
         )
 
@@ -221,8 +221,3 @@ class ResUNet(nn.Module):
         else:
             return output4
 
-
-def init(module):
-    if isinstance(module, nn.Conv3d) or isinstance(module, nn.ConvTranspose3d):
-        nn.init.kaiming_normal_(module.weight.data, 0.25)
-        nn.init.constant_(module.bias.data, 0)
