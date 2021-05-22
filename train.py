@@ -6,7 +6,7 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 import config
-from models.UNet import UNet3D, RecombinationBlock
+from models.UNet import UNet3D
 from models.ResUNet import ResUNet
 from utils import logger, weights_init, metrics, common, loss
 import os
@@ -27,15 +27,15 @@ def val(model, val_loader, loss_func, n_labels):
             
             val_loss.update(loss.item(),data.size(0))
             val_dice.update(output, target)
-    if n_labels == 2:
-        return OrderedDict({'Val_Loss': val_loss.avg, 'dice_liver': val_dice.avg[1]})
-    else:
-        return OrderedDict({'Val_Loss': val_loss.avg, 'dice_liver': val_dice.avg[1],'dice_tumor': val_dice.avg[2]})
+    val_log = OrderedDict({'Val_Loss': val_loss.avg, 'Val_dice_liver': val_dice.avg[1]})
+    if n_labels==3: val_log.update({'Val_dice_tumor': val_dice.avg[2]})
+    return val_log
 
 def train(model, train_loader, optimizer, loss_func, n_labels, alpha):
     print("=======Epoch:{}=======lr:{}".format(epoch,optimizer.state_dict()['param_groups'][0]['lr']))
     model.train()
     train_loss = metrics.LossAverage()
+    train_dice = metrics.DiceAverage()
 
     for idx, (data, target) in tqdm(enumerate(train_loader),total=len(train_loader)):
         data, target = data.float(), target.long()
@@ -53,9 +53,12 @@ def train(model, train_loader, optimizer, loss_func, n_labels, alpha):
         loss.backward()
         optimizer.step()
         
-        train_loss.update(loss.item(),data.size(0))
+        train_loss.update(loss3.item(),data.size(0))
+        train_dice.update(output[3], target)
 
-    return OrderedDict({'Train_Loss': train_loss.avg})
+    train_log = OrderedDict({'Train_Loss': train_loss.avg, 'Train_dice_liver': train_dice.avg[1]})
+    if n_labels==3: val_log.update({'Train_dice_tumor': train_dice.avg[2]})
+    return val_log
 
 if __name__ == '__main__':
     args = config.args
@@ -68,16 +71,14 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=Val_Dataset(args),batch_size=1,num_workers=args.n_threads, shuffle=False)
 
     # model info
-    # model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=args.n_labels).to(device)
-    model = ResUNet(training=True).to(device)
+    # model = UNet3D(in_channel=1, out_channel=args.n_labels).to(device)
+    model = ResUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
     model.apply(weights_init.init_model)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     common.print_network(model)
     model = torch.nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
-    
-    # loss=loss.DiceLoss(weight=np.array([0.2,0.8])) if args.n_labels==2 else loss.DiceLoss(weight=np.array([0.2,0.3,0.5]))
-    from loss import Dice
-    loss = Dice.DiceLossV2()
+ 
+    loss = loss.TverskyLoss()
 
     log = logger.Train_Logger(save_path,"train_log")
 

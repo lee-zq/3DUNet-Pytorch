@@ -57,8 +57,6 @@ class DenseBlock(nn.Module):
 
         return x
 
-
-
 class ResBlock(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1):
         super(ResBlock, self).__init__()

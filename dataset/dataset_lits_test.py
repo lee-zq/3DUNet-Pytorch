@@ -8,7 +8,6 @@ from torch.utils.data import Dataset, DataLoader
 from glob import glob
 import math
 import SimpleITK as sitk
-from .tools import load_file_name_list, padding_img, extract_ordered_overlap
 
 class Img_DataSet(Dataset):
     def __init__(self, data_path, label_path, args):
@@ -26,10 +25,10 @@ class Img_DataSet(Dataset):
         self.data_np = self.data_np/args.norm_factor
         self.resized_shape = self.data_np.shape
         # 扩展一定数量的slices，以保证卷积下采样合理运算
-        self.data_np = padding_img(self.data_np, self.cut_size,self.cut_stride)
+        self.data_np = self.padding_img(self.data_np, self.cut_size,self.cut_stride)
         self.padding_shape = self.data_np.shape
         # 对数据按步长进行分patch操作，以防止显存溢出
-        self.data_np = extract_ordered_overlap(self.data_np, self.cut_size, self.cut_stride)
+        self.data_np = self.extract_ordered_overlap(self.data_np, self.cut_size, self.cut_stride)
 
         # 读取一个label文件 shape:[s,h,w]
         self.seg = sitk.ReadImage(label_path,sitk.sitkInt8)
@@ -79,6 +78,35 @@ class Img_DataSet(Dataset):
         img = final_avg[:, :self.ori_shape[0], :self.ori_shape[1], :self.ori_shape[2]]
         return img.unsqueeze(0)
 
+    def padding_img(self, img, size, stride):
+        assert (len(img.shape) == 3)  # 3D array
+        img_s, img_h, img_w = img.shape
+        leftover_s = (img_s - size) % stride
+
+        if (leftover_s != 0):
+            s = img_s + (stride - leftover_s)
+        else:
+            s = img_s
+
+        tmp_full_imgs = np.zeros((s, img_h, img_w),dtype=np.float32)
+        tmp_full_imgs[:img_s] = img
+        print("Padded images shape: " + str(tmp_full_imgs.shape))
+        return tmp_full_imgs
+    
+    # Divide all the full_imgs in pacthes
+    def extract_ordered_overlap(self, img, size, stride):
+        img_s, img_h, img_w = img.shape
+        assert (img_s - size) % stride == 0
+        N_patches_img = (img_s - size) // stride + 1
+
+        print("Patches number of the image:{}".format(N_patches_img))
+        patches = np.empty((N_patches_img, size, img_h, img_w), dtype=np.float32)
+
+        for s in range(N_patches_img):  # loop over the full images
+            patch = img[s * stride : s * stride + size]
+            patches[s] = patch
+
+        return patches  # array with all the full_imgs divided in patches
 
 def Test_Datasets(dataset_path, args):
     data_list = sorted(glob(os.path.join(dataset_path, 'ct/*')))

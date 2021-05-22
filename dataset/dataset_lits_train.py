@@ -9,19 +9,18 @@ import SimpleITK as sitk
 import torch
 from torch.utils.data import Dataset as dataset
 from .transforms import RandomCrop, RandomFlip_LR, RandomFlip_UD, Center_Crop, Compose, Resize
-from .tools import load_file_name_list, padding_img, extract_ordered_overlap
 
 class Train_Dataset(dataset):
     def __init__(self, args):
 
         self.args = args
 
-        self.filename_list = load_file_name_list(os.path.join(args.dataset_path, 'train_path_list.txt'))
+        self.filename_list = self.load_file_name_list(os.path.join(args.dataset_path, 'train_path_list.txt'))
 
         self.transforms = Compose([
-                RandomCrop(self.args.crop_slices),
-                # RandomFlip_LR(prob=0.5),
-                # RandomFlip_UD(prob=0.5),
+                RandomCrop(self.args.crop_size),
+                RandomFlip_LR(prob=0.5),
+                RandomFlip_UD(prob=0.5),
                 # RandomRotate()
             ])
 
@@ -46,6 +45,16 @@ class Train_Dataset(dataset):
 
     def __len__(self):
         return len(self.filename_list)
+
+    def load_file_name_list(self, file_path):
+        file_name_list = []
+        with open(file_path, 'r') as file_to_read:
+            while True:
+                lines = file_to_read.readline().strip()  # 整行读取数据
+                if not lines:
+                    break
+                file_name_list.append(lines.split())
+        return file_name_list
 
 if __name__ == "__main__":
     sys.path.append('/ssd/lzq/3DUNet')

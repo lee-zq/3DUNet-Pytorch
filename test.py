@@ -29,16 +29,15 @@ def predict_one_img(model, img_dataset, args):
         for data in tqdm(dataloader,total=len(dataloader)):
             data = data.to(device)
             output = model(data)
-            # output = nn.functional.interpolate(output, scale_factor=(1//img_dataset.slice_down_scale,1//img_dataset.xy_down_scale,1//img_dataset.xy_down_scale), mode='trilinear', align_corners=False) # 空间分辨率恢复到原始size
+            # output = nn.functional.interpolate(output, scale_factor=(1//args.slice_down_scale,1//args.xy_down_scale,1//args.xy_down_scale), mode='trilinear', align_corners=False) # 空间分辨率恢复到原始size
             img_dataset.update_result(output.detach().cpu())
 
     pred = img_dataset.recompone_result()
     
     test_dice.update(pred, target)
-    if args.n_labels==2:
-        test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1]})
-    else:
-        test_dice = OrderedDict({'Test dice0': test_dice.avg[0],'Test dice1': test_dice.avg[1],'Test dice2': test_dice.avg[2]})
+    
+    test_dice = OrderedDict({'Dice_liver': test_dice.avg[1]})
+    if args.n_labels==3: test_dice.update({'Dice_tumor': test_dice.avg[2]})
 
     pred_img = torch.argmax(pred,dim=1)
     pred_img = np.array(pred_img.numpy(),dtype='uint8')

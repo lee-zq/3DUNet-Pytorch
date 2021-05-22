@@ -1,10 +1,7 @@
 from __future__ import print_function
-import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
-from torchvision import datasets, transforms
 from .nn.module import ResBlock
 
 class Up(nn.Module):
@@ -12,7 +9,7 @@ class Up(nn.Module):
         super(Up, self).__init__()
         self.up = nn.ConvTranspose3d(down_in_channels, down_in_channels, 2, stride=2)
 
-        self.conv = RecombinationBlock(in_channels + down_in_channels, out_channels)
+        self.conv = conv_block(in_channels + down_in_channels, out_channels)
 
     def forward(self, down_x, x):
         up_x = self.up(down_x)
@@ -27,7 +24,7 @@ class Down(nn.Module):
     def __init__(self, in_channels, out_channels, conv_block):
         super(Down, self).__init__()
         maxpool = nn.MaxPool3d
-        self.conv = RecombinationBlock(in_channels, out_channels)
+        self.conv = conv_block(in_channels, out_channels)
 
         self.down = maxpool(2, stride=2)
 
@@ -98,10 +95,10 @@ class RecombinationBlock(nn.Module):
 
 
 class UNet3D(nn.Module):
-    def __init__(self, in_channels, filter_num_list, class_num, conv_block=ResBlock):
+    def __init__(self, in_channel,  out_channel, filter_num_list=[16, 32, 48, 64, 96], conv_block=ResBlock):
         super(UNet3D, self).__init__()
         conv = nn.Conv3d
-        self.inc = conv(in_channels, 16, 1)
+        self.inc = conv(in_channel, 16, 1)
 
         # down
         self.down1 = Down(16, filter_num_list[0], conv_block=conv_block)
@@ -117,7 +114,7 @@ class UNet3D(nn.Module):
         self.up3 = Up(filter_num_list[2], filter_num_list[1], filter_num_list[1], conv_block=conv_block)
         self.up4 = Up(filter_num_list[1], filter_num_list[0], filter_num_list[0], conv_block=conv_block)
 
-        self.class_conv = conv(filter_num_list[0], class_num, 1)
+        self.class_conv = conv(filter_num_list[0], out_channel, 1)
 
     def forward(self, x):
 

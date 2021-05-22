@@ -2,23 +2,21 @@ from posixpath import join
 from torch.utils.data import DataLoader
 import os
 import sys
-import random
-from torchvision.transforms import RandomCrop
 import numpy as np
 import SimpleITK as sitk
 import torch
 from torch.utils.data import Dataset as dataset
-from .transforms import RandomCrop, RandomFlip_LR, RandomFlip_UD, Center_Crop, Compose, Resize
-from .tools import load_file_name_list, padding_img, extract_ordered_overlap
+from .transforms import Center_Crop, Compose
+
 
 class Val_Dataset(dataset):
     def __init__(self, args):
 
         self.args = args
-        self.filename_list = load_file_name_list(os.path.join(args.dataset_path, 'val_path_list.txt'))
+        self.filename_list = self.load_file_name_list(os.path.join(args.dataset_path, 'val_path_list.txt'))
 
-        self.transforms = Compose([Center_Crop(base=16, max_slice=96)]) 
-        
+        self.transforms = Compose([Center_Crop(base=16, max_size=args.val_crop_max_size)]) 
+
     def __getitem__(self, index):
 
         ct = sitk.ReadImage(self.filename_list[index][0], sitk.sitkInt16)
@@ -40,6 +38,16 @@ class Val_Dataset(dataset):
 
     def __len__(self):
         return len(self.filename_list)
+
+    def load_file_name_list(self, file_path):
+        file_name_list = []
+        with open(file_path, 'r') as file_to_read:
+            while True:
+                lines = file_to_read.readline().strip()  # 整行读取数据
+                if not lines:
+                    break
+                file_name_list.append(lines.split())
+        return file_name_list
 
 if __name__ == "__main__":
     sys.path.append('/ssd/lzq/3DUNet')
