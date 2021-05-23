@@ -8,6 +8,7 @@ from tqdm import tqdm
 import config
 from models.UNet import UNet3D
 from models.ResUNet import ResUNet
+from models.KiUNet import 
 from utils import logger, weights_init, metrics, common, loss
 import os
 import numpy as np
@@ -66,13 +67,13 @@ if __name__ == '__main__':
     if not os.path.exists(save_path): os.mkdir(save_path)
     device = torch.device('cpu' if args.cpu else 'cuda')
     # data info
-
     train_loader = DataLoader(dataset=Train_Dataset(args),batch_size=args.batch_size,num_workers=args.n_threads, shuffle=True)
     val_loader = DataLoader(dataset=Val_Dataset(args),batch_size=1,num_workers=args.n_threads, shuffle=False)
 
     # model info
     # model = UNet3D(in_channel=1, out_channel=args.n_labels).to(device)
-    model = ResUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
+    # model = ResUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
+    model = KiUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
     model.apply(weights_init.init_model)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     common.print_network(model)
@@ -84,7 +85,7 @@ if __name__ == '__main__':
 
     best = [0,0] # 初始化最优模型的epoch和performance
     trigger = 0  # early stop 计数器
-    alpha = 0.4
+    alpha = 0.4 # 深监督衰减系数初始值
     for epoch in range(1, args.epochs + 1):
         common.adjust_learning_rate(optimizer, epoch, args)
         train_log = train(model, train_loader, optimizer, loss, args.n_labels, alpha)

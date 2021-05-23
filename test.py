@@ -1,7 +1,3 @@
-"""
-在测试集目录中进行测试，给出性能评价指标和可视化结果
-"""
-from pickle import FALSE
 from torch.utils.data import DataLoader
 import torch
 from tqdm import tqdm
@@ -33,21 +29,22 @@ def predict_one_img(model, img_dataset, args):
             img_dataset.update_result(output.detach().cpu())
 
     pred = img_dataset.recompone_result()
-    
-    test_dice.update(pred, target)
+    pred = torch.argmax(pred,dim=1)
+
+    pred_img = common.to_one_hot_3d(pred,args.n_labels)
+    test_dice.update(pred_img, target)
     
     test_dice = OrderedDict({'Dice_liver': test_dice.avg[1]})
     if args.n_labels==3: test_dice.update({'Dice_tumor': test_dice.avg[2]})
+    
+    pred = np.asarray(pred.numpy(),dtype='uint8')
+    pred = sitk.GetImageFromArray(np.squeeze(pred,axis=0))
 
-    pred_img = torch.argmax(pred,dim=1)
-    pred_img = np.array(pred_img.numpy(),dtype='uint8')
-    pred_img = sitk.GetImageFromArray(np.squeeze(pred_img,axis=0))
-
-    return test_dice, pred_img
+    return test_dice, pred
 
 if __name__ == '__main__':
     args = config.args
-    save_path = os.path.join('./experiments', args.save)
+    save_path = os.path.join('./experiments', "up4")
     device = torch.device('cpu' if args.cpu else 'cuda')
     # model info
     # model = UNet3D(in_channels=1, filter_num_list=[16, 32, 48, 64, 96], class_num=args.n_labels).to(device)
