@@ -6,9 +6,9 @@ import torch
 import torch.optim as optim
 from tqdm import tqdm
 import config
-from models.UNet import UNet3D
-from models.ResUNet import ResUNet
-from models.KiUNet import 
+
+from models import UNet, ResUNet , KiUNet_min, SegNet, KiUNet_org
+
 from utils import logger, weights_init, metrics, common, loss
 import os
 import numpy as np
@@ -36,7 +36,7 @@ def train(model, train_loader, optimizer, loss_func, n_labels, alpha):
     print("=======Epoch:{}=======lr:{}".format(epoch,optimizer.state_dict()['param_groups'][0]['lr']))
     model.train()
     train_loss = metrics.LossAverage()
-    train_dice = metrics.DiceAverage()
+    train_dice = metrics.DiceAverage(n_labels)
 
     for idx, (data, target) in tqdm(enumerate(train_loader),total=len(train_loader)):
         data, target = data.float(), target.long()
@@ -72,8 +72,8 @@ if __name__ == '__main__':
 
     # model info
     # model = UNet3D(in_channel=1, out_channel=args.n_labels).to(device)
-    # model = ResUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
-    model = KiUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
+    model = ResUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
+    # model = KiUNet_min(in_channel=1, out_channel=args.n_labels,training=True).to(device)
     model.apply(weights_init.init_model)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     common.print_network(model)
