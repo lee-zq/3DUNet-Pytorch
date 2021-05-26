@@ -7,7 +7,7 @@ import torch.optim as optim
 from tqdm import tqdm
 import config
 
-from models import UNet, ResUNet , KiUNet_min, SegNet, KiUNet_org
+from models import UNet, ResUNet , KiUNet_min, SegNet
 
 from utils import logger, weights_init, metrics, common, loss
 import os
@@ -57,7 +57,7 @@ def train(model, train_loader, optimizer, loss_func, n_labels, alpha):
         train_loss.update(loss3.item(),data.size(0))
         train_dice.update(output[3], target)
 
-    train_log = OrderedDict({'Train_Loss': train_loss.avg, 'Train_dice_liver': train_dice.avg[1]})
+    val_log = OrderedDict({'Train_Loss': train_loss.avg, 'Train_dice_liver': train_dice.avg[1]})
     if n_labels==3: val_log.update({'Train_dice_tumor': train_dice.avg[2]})
     return val_log
 
@@ -71,13 +71,12 @@ if __name__ == '__main__':
     val_loader = DataLoader(dataset=Val_Dataset(args),batch_size=1,num_workers=args.n_threads, shuffle=False)
 
     # model info
-    # model = UNet3D(in_channel=1, out_channel=args.n_labels).to(device)
     model = ResUNet(in_channel=1, out_channel=args.n_labels,training=True).to(device)
-    # model = KiUNet_min(in_channel=1, out_channel=args.n_labels,training=True).to(device)
+
     model.apply(weights_init.init_model)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     common.print_network(model)
-    model = torch.nn.DataParallel(model, device_ids=[0,1])  # multi-GPU
+    model = torch.nn.DataParallel(model, device_ids=args.gpu_id)  # multi-GPU
  
     loss = loss.TverskyLoss()
 
@@ -96,11 +95,11 @@ if __name__ == '__main__':
         state = {'net': model.state_dict(),'optimizer':optimizer.state_dict(),'epoch': epoch}
         torch.save(state, os.path.join(save_path, 'latest_model.pth'))
         trigger += 1
-        if val_log['dice_liver'] > best[1]:
+        if val_log['Val_dice_liver'] > best[1]:
             print('Saving best model')
             torch.save(state, os.path.join(save_path, 'best_model.pth'))
             best[0] = epoch
-            best[1] = val_log['dice_liver']
+            best[1] = val_log['Val_dice_liver']
             trigger = 0
         print('Best performance at Epoch: {} | {}'.format(best[0],best[1]))
 

@@ -1,3 +1,7 @@
+"""
+This code is referenced from https://github.com/jeya-maria-jose/KiU-Net-pytorch/blob/master/LiTS/net/models.py
+"""
+
 import os
 import sys
 
@@ -5,22 +9,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# 该模型是一种轻量kiuNet实现，我在原始代码基础上，减去了最小分辨率的编解码过程
 class KiUNet_min(nn.Module):
     def __init__(self, in_channel=1, out_channel=2, training=True):
         super(KiUNet_min, self).__init__()
         self.training = training
-        self.encoder1 = nn.Conv3d(in_channel, 32, 3, stride=1, padding=1)  # b, 16, 10, 10
-        self.encoder2=   nn.Conv3d(32, 64, 3, stride=1, padding=1)  # b, 8, 3, 3
+        self.encoder1 = nn.Conv3d(in_channel, 32, 3, stride=1, padding=1)
+        self.encoder2=   nn.Conv3d(32, 64, 3, stride=1, padding=1) 
         self.encoder3=   nn.Conv3d(64, 128, 3, stride=1, padding=1)
         self.encoder4=   nn.Conv3d(128, 256, 3, stride=1, padding=1)
-        self.encoder5=   nn.Conv3d(256, 512, 3, stride=1, padding=1)
+        # self.encoder5=   nn.Conv3d(256, 512, 3, stride=1, padding=1)
         
         self.kencoder1 = nn.Conv3d(1, 32, 3, stride=1, padding=1)
         self.kdecoder1 = nn.Conv3d(32, 2, 3, stride=1, padding=1)
 
-        self.decoder1 = nn.Conv3d(512, 256, 3, stride=1,padding=1)  # b, 16, 5, 5
-        self.decoder2 =   nn.Conv3d(256, 128, 3, stride=1, padding=1)  # b, 8, 15, 1
-        self.decoder3 =   nn.Conv3d(128, 64, 3, stride=1, padding=1)  # b, 1, 28, 28
+        # self.decoder1 = nn.Conv3d(512, 256, 3, stride=1,padding=1)  
+        self.decoder2 =   nn.Conv3d(256, 128, 3, stride=1, padding=1)  
+        self.decoder3 =   nn.Conv3d(128, 64, 3, stride=1, padding=1) 
         self.decoder4 =   nn.Conv3d(64, 32, 3, stride=1, padding=1)
         self.decoder5 =   nn.Conv3d(32, 2, 3, stride=1, padding=1)
         
@@ -64,13 +69,16 @@ class KiUNet_min(nn.Module):
         out = F.relu(F.max_pool3d(self.encoder3(out),2,2))
         t3 = out
         out = F.relu(F.max_pool3d(self.encoder4(out),2,2))
-        t4 = out
-        out = F.relu(F.max_pool3d(self.encoder5(out),2,2))
+
+        # t4 = out
+        # out = F.relu(F.max_pool3d(self.encoder5(out),2,2))
         
         # t2 = out
-        out = F.relu(F.interpolate(self.decoder1(out),scale_factor=(2,2,2),mode ='trilinear'))
+        # out = F.relu(F.interpolate(self.decoder1(out),scale_factor=(2,2,2),mode ='trilinear'))
         # print(out.shape,t4.shape)
-        out = torch.add(F.pad(out,[0,0,0,0,0,1]),t4)
+        # out = torch.add(F.pad(out,[0,0,0,0,0,1]),t4)
+        # out = torch.add(out,t4)
+
         output1 = self.map1(out)
         out = F.relu(F.interpolate(self.decoder2(out),scale_factor=(2,2,2),mode ='trilinear'))
         out = torch.add(out,t3)
@@ -97,13 +105,13 @@ class KiUNet_min(nn.Module):
         else:
             return output4
 
-
+# 该实现还有些问题，官方代码本身也存在问题，还未给出回应。我尝试按照论文复现，但显存占用率过高无法训练推理
 class KiUNet_org(nn.Module):
     
     def __init__(self,in_channel=1, out_channel=2, training=True):
         super(KiUNet_org, self).__init__()
         self.training = training
-        self.start = nn.Conv3d(in_channel, 1, 3, stride=2, padding=1)
+        self.start = nn.Conv3d(in_channel, 1, 3, stride=1, padding=1)
 
         self.encoder1 = nn.Conv3d(1, 16, 3, stride=1, padding=1)  # First Layer GrayScale Image , change to input channels to 3 in case of RGB 
         self.en1_bn = nn.BatchNorm3d(16)
@@ -139,6 +147,7 @@ class KiUNet_org(nn.Module):
         self.inte2_1bn = nn.BatchNorm3d(32)
         self.intere3_1 = nn.Conv3d(64,64,3, stride=1, padding=1)
         self.inte3_1bn = nn.BatchNorm3d(64)
+
 
         self.intere1_2 = nn.Conv3d(16,16,3, stride=1, padding=1)
         self.inte1_2bn = nn.BatchNorm3d(16)
@@ -221,7 +230,7 @@ class KiUNet_org(nn.Module):
         
         u2 = out
         o2 = out1
-        out = F.pad(out,[0,0,0,0,0,1])
+        # out = F.pad(out,[0,0,0,0,0,1])
         # print(out.shape)
         out = F.relu(self.en3_bn(F.max_pool3d(self.encoder3(out),2,2)))
         out1 = F.relu(self.enf3_bn(F.interpolate(self.encoderf3(out1),scale_factor=(1,2,2),mode ='trilinear')))
@@ -274,3 +283,11 @@ class KiUNet_org(nn.Module):
             return output1, output2, output3, output4
         else:
             return output4
+
+
+if __name__ == "__main__":
+    net =KiUNet_org(training=False)
+    in1 = torch.rand((2,1,48,256,256))
+    out = net(in1)
+    for i in range(len(out)):
+        print(out[i].size())

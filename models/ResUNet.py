@@ -1,3 +1,7 @@
+"""
+This code is referenced from https://github.com/assassint2017/MICCAI-LITS2017
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

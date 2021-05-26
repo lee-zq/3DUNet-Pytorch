@@ -10,9 +10,9 @@ class UNet(nn.Module):
         self.encoder2=   nn.Conv3d(32, 64, 3, stride=1, padding=1)  # b, 8, 3, 3
         self.encoder3=   nn.Conv3d(64, 128, 3, stride=1, padding=1)
         self.encoder4=   nn.Conv3d(128, 256, 3, stride=1, padding=1)
-        self.encoder5=   nn.Conv3d(256, 512, 3, stride=1, padding=1)
+        # self.encoder5=   nn.Conv3d(256, 512, 3, stride=1, padding=1)
         
-        self.decoder1 = nn.Conv3d(512, 256, 3, stride=1,padding=1)  # b, 16, 5, 5
+        # self.decoder1 = nn.Conv3d(512, 256, 3, stride=1,padding=1)  # b, 16, 5, 5
         self.decoder2 =   nn.Conv3d(256, 128, 3, stride=1, padding=1)  # b, 8, 15, 1
         self.decoder3 =   nn.Conv3d(128, 64, 3, stride=1, padding=1)  # b, 1, 28, 28
         self.decoder4 =   nn.Conv3d(64, 32, 3, stride=1, padding=1)
@@ -54,13 +54,12 @@ class UNet(nn.Module):
         out = F.relu(F.max_pool3d(self.encoder3(out),2,2))
         t3 = out
         out = F.relu(F.max_pool3d(self.encoder4(out),2,2))
-        t4 = out
-        out = F.relu(F.max_pool3d(self.encoder5(out),2,2))
+        # t4 = out
+        # out = F.relu(F.max_pool3d(self.encoder5(out),2,2))
         
         # t2 = out
-        out = F.relu(F.interpolate(self.decoder1(out),scale_factor=(2,2,2),mode ='trilinear'))
+        # out = F.relu(F.interpolate(self.decoder1(out),scale_factor=(2,2,2),mode ='trilinear'))
         # print(out.shape,t4.shape)
-        out = torch.add(F.pad(out,[0,0,0,0,0,1]),t4)
         output1 = self.map1(out)
         out = F.relu(F.interpolate(self.decoder2(out),scale_factor=(2,2,2),mode ='trilinear'))
         out = torch.add(out,t3)
