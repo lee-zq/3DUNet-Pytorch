@@ -114,7 +114,7 @@ class LITS_preprocess:
 
 if __name__ == '__main__':
     raw_dataset_path = '/ssd/lzq/dataset/LiTS/train'
-    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits5'
+    fixed_dataset_path = '/ssd/lzq/dataset/fixed_lits'
 
     args = config.args 
     tool = LITS_preprocess(raw_dataset_path,fixed_dataset_path, args)
