@@ -17,12 +17,17 @@ Scipy
 ```angular2
 ├── dataset          # Training and testing dataset
 │   ├── dataset_lits_train.py 
-│   └── dataset_lits_test.py 
+│   ├── dataset_lits_val.py
+│   ├── dataset_lits_test.py
+│   └── transforms.py 
 ├── models           # Model design
 │   ├── nn
 │   │   └── module.py
-│   └── Unet.py      # 3DUNet class
-├── output           # Trained model
+│   │── ResUNet.py      # 3DUNet class
+│   │── Unet.py      # 3DUNet class
+│   │── SegNet.py      # 3DUNet class
+│   └── KiUNet.py      # 3DUNet class
+├── experiments           # Trained model
 |── utils            # Some related tools
 |   ├── common.py
 |   ├── weights_init.py
@@ -45,7 +50,7 @@ such as:
 ```
 raw_dataset:
     ├── test  # 20 samples(27~46) 
-    │   ├── data
+    │   ├── ct
     │   │   ├── volume-27.nii
     │   │   ├── volume-28.nii
     |   |   |—— ...
@@ -55,7 +60,7 @@ raw_dataset:
     |       |—— ...
     │       
     ├── train # 111 samples(0\~26 and 47\~131)
-    │   ├── data
+    │   ├── ct
     │   │   ├── volume-0.nii
     │   │   ├── volume-1.nii
     |   |   |—— ...
@@ -72,10 +77,10 @@ raw_dataset:
 4. Run `python ./preprocess_LiTS.py`   
 If nothing goes wrong, you can see the following files in the dir `./fixed_data`
 ```angular2
-│—— train_name_list.txt
-│—— val_name_list.txt
+│—— train_path_list.txt
+│—— val_path_list.txt
 │
-|—— data
+|—— ct
 │       volume-0.nii
 │       volume-1.nii
 │       volume-2.nii
@@ -96,14 +101,13 @@ in the browser through `tensorboard --logdir ./output/model_name`.
 ---   
 ### 3) Testing 3DUNet
 run `test.py`  
-Please pay attention to path of trained model and cut parameters in `test.py`.   
+Please pay attention to path of trained model in `test.py`.   
 (Since the calculation of the 3D convolution operation is too large,
  I use a sliding window to block the input tensor before prediction, and then stitch the results to get the final result.
- The size of the sliding window can be set by yourself in `test.py`)  
+ The size of the sliding window can be set by yourself in `config.py`)  
 
-After the test, you can get the test results in the corresponding folder:`./output/model_name/result`
+After the test, you can get the test results in the corresponding folder:`./experiments/model_name/result`
 
-You can also read my Chinese
- introduction about this [3DUNet project here](https://zhuanlan.zhihu.com/p/113318562).    
+You can also read my Chinese introduction about this 3DUNet project [here](https://zhuanlan.zhihu.com/p/113318562). However, I no longer update the blog, I will try my best to update the github code.    
 If you have any suggestions or questions, 
 welcome to open an issue to communicate with me.  

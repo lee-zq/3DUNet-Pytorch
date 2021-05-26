@@ -33,9 +33,9 @@ parser.add_argument('--crop_size', type=int, default=48)
 parser.add_argument('--val_crop_max_size', type=int, default=96)
 
 # test
-parser.add_argument('--test_cut_size', type=int, default=48, help='')
-parser.add_argument('--test_cut_stride', type=int, default=24, help='')
-parser.add_argument('--postprocess', type=bool, default=False, help='')
+parser.add_argument('--test_cut_size', type=int, default=48, help='size of sliding window')
+parser.add_argument('--test_cut_stride', type=int, default=24, help='stride of sliding window')
+parser.add_argument('--postprocess', type=bool, default=False, help='post process')
 
 
 args = parser.parse_args()
